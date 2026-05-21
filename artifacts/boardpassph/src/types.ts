@@ -42,6 +42,10 @@ export interface Question {
 export interface UserProfile {
   email: string;
   tier: 'Free' | 'Pro' | 'Clinical' | 'Clinical Trial';
+  coins?: number;
+  username?: string;
+  school?: string;
+  photo?: string;
   totalXp: number;
   streak: number;
   streakShields: number;

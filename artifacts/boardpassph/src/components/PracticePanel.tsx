@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Play, Award, CheckCircle2, AlertTriangle, BookOpen, Clock, 
-  Heart, Edit3, ArrowRight, Upload, X, FileText, Trash2, CheckSquare 
+  Heart, Edit3, ArrowRight, Upload, X, FileText, Trash2, CheckSquare, Coins
 } from 'lucide-react';
 import { Question, UserProfile } from '../types';
 
@@ -17,6 +17,8 @@ interface PracticePanelProps {
     fileMimeType?: string
   ) => void;
   loading: boolean;
+  selectedModel: 'budget' | 'standard' | 'premium';
+  onModelChange: (model: 'budget' | 'standard' | 'premium') => void;
 }
 
 interface UploadedFileObj {
@@ -32,7 +34,9 @@ export const PracticePanel: React.FC<PracticePanelProps> = ({
   setProfile,
   currentQuestion,
   onFetchQuestion,
-  loading
+  loading,
+  selectedModel,
+  onModelChange
 }) => {
   const [focusSelect, setFocusSelect] = useState('any random DSM-5 disorder chapter');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'random'>('random');
@@ -354,6 +358,31 @@ export const PracticePanel: React.FC<PracticePanelProps> = ({
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pine"></div>
             </label>
+          </div>
+        </div>
+
+        {/* Model Tier + Coin Balance Row */}
+        <div className="border-t border-gray-100 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">AI Model Tier</label>
+            <select
+              value={selectedModel}
+              onChange={(e) => onModelChange(e.target.value as 'budget' | 'standard' | 'premium')}
+              className="w-full bg-white border border-gray-200 text-xs font-semibold py-2.5 px-3 rounded-xl outline-none focus:border-sage transition-all"
+            >
+              <option value="budget">🟢 Llama 3.2 Budget — 5 coins/Q</option>
+              <option value="standard">🟡 Claude Haiku 4.5 — 100 coins/Q</option>
+              <option value="premium">🔴 Gemini 2.0 Flash — 200 coins/Q</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-3 bg-foam/40 border border-sage/10 rounded-xl px-4 py-2.5">
+            <Coins className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+            <div>
+              <div className="text-xs font-bold text-pine">{(profile.coins ?? 0).toLocaleString()} coins</div>
+              <div className="text-[9px] text-gray-400 font-mono">
+                {selectedModel === 'budget' ? 5 : selectedModel === 'standard' ? 100 : 200} coins deducted per question
+              </div>
+            </div>
           </div>
         </div>
 

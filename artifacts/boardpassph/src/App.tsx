@@ -16,7 +16,8 @@ import {
   Shield,
   Trophy,
   Calculator,
-  Megaphone
+  Megaphone,
+  User
 } from 'lucide-react';
 import { UserProfile, Question } from './types';
 import { Header } from './components/Header';
@@ -35,6 +36,7 @@ import { LeaderboardPanel } from './components/LeaderboardPanel';
 import { FocusArenaPanel } from './components/FocusArenaPanel';
 import { WeightedCalculatorPanel } from './components/WeightedCalculatorPanel';
 import { AnnouncementsPanel } from './components/AnnouncementsPanel';
+import { ProfilePanel } from './components/ProfilePanel';
 import { getRandomLocalQuestion } from './utils/questionGenerator';
 import { db } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -101,6 +103,8 @@ export default function App() {
 
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [loadingQuestion, setLoadingQuestion] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<'budget' | 'standard' | 'premium'>('budget');
+  const MODEL_COIN_COSTS = { budget: 5, standard: 100, premium: 200 } as const;
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +149,7 @@ export default function App() {
       const newProfile: UserProfile = {
         email: emailLower,
         tier: 'Clinical Trial',
+        coins: 1000,
         totalXp: 150,
         streak: 1,
         streakShields: 1,
@@ -331,6 +336,22 @@ export default function App() {
     fileMimeType?: string
   ) => {
     if (!profile) return;
+
+    const coinCost = MODEL_COIN_COSTS[selectedModel];
+    const currentCoins = profile.coins ?? 0;
+
+    if (currentCoins < coinCost) {
+      alert(`⚠️ Not enough coins!\n\nThis model costs ${coinCost} coins per question.\nYour balance: ${currentCoins.toLocaleString()} coins.\n\nBuy more coins in the Plans tab.`);
+      return;
+    }
+
+    setProfile(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, coins: (prev.coins ?? 0) - coinCost };
+      localStorage.setItem(`bp_profile_${prev.email}`, JSON.stringify(updated));
+      return updated;
+    });
+
     setLoadingQuestion(true);
     setCurrentQuestion(null);
 
@@ -348,7 +369,8 @@ export default function App() {
           source, 
           difficulty,
           fileData,
-          fileMimeType
+          fileMimeType,
+          model: selectedModel
         })
       });
 
@@ -582,6 +604,7 @@ export default function App() {
   }
 
   const tabs = [
+    { id: 'profileTab', label: 'Profile', icon: User },
     { id: 'plannerTab', label: 'Study Planner', icon: Calendar },
     { id: 'quizTab', label: 'AI Practice', icon: Target },
     { id: 'examTab', label: 'Mock Exam', icon: Shield },
@@ -661,6 +684,13 @@ export default function App() {
           )}
 
           <div className={activeTab !== 'plannerTab' ? 'xl:col-span-3' : 'xl:col-span-4'}>
+            {activeTab === 'profileTab' && (
+              <ProfilePanel
+                profile={profile}
+                setProfile={setProfile as React.Dispatch<React.SetStateAction<UserProfile>>}
+              />
+            )}
+
             {activeTab === 'plannerTab' && (
               <StudyPlannerPanel 
                 profile={profile} 
@@ -674,9 +704,10 @@ export default function App() {
                 profile={profile}
                 setProfile={setProfile as React.Dispatch<React.SetStateAction<UserProfile>>}
                 currentQuestion={currentQuestion}
-                loadingQuestion={loadingQuestion}
+                loading={loadingQuestion}
                 onFetchQuestion={handleFetchQuestion}
-                onLoadGeneratedQuestion={handleLoadGeneratedQuestion}
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
               />
             )}
 

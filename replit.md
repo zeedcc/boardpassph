@@ -54,7 +54,13 @@ AI-powered Philippine psychology board exam review platform for PRC Psychometric
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Billing model: Pay-As-You-Go coin credits (not subscription tiers)
+- Coin packages: Sulit ₱50=50k, Pro ₱149=160k, Clinical ₱299=350k
+- Model coin costs: Llama budget=5, Claude standard=100, Gemini premium=200 coins/Q
+- New users get 1,000 starter coins on sign-up
+- Profile ID card: editable username, school, photo (base64), password
+- Correct answer shuffle: server-side after Gemini response + fallback seeds
+- PayMongo integration: `PAYMONGO_SECRET_KEY` env var required; also optional `PAYMONGO_WEBHOOK_SECRET`
 
 ## Gotchas
 
