@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Search, RotateCcw, TrendingUp, UserCheck, Check, AlertCircle, RefreshCw, Star, Trash2 } from 'lucide-react';
+import { Shield, Search, RotateCcw, TrendingUp, UserCheck, Check, AlertCircle, RefreshCw, Star, Trash2, Megaphone, Pin, Send } from 'lucide-react';
 import { UserProfile } from '../types';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { collection, doc, getDoc, getDocs, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { Announcement } from './AnnouncementsPanel';
 
 interface AdminPanelProps {
   profile: UserProfile | null;
-  setProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
+  setProfile?: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, setProfile }) => {
@@ -16,11 +17,74 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, setProfile }) =
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
+  // Announcements state
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [annTitle, setAnnTitle] = useState('');
+  const [annBody, setAnnBody] = useState('');
+  const [annType, setAnnType] = useState<'info' | 'warning' | 'success'>('info');
+  const [annPinned, setAnnPinned] = useState(false);
+  const [annLoading, setAnnLoading] = useState(false);
+  const [annStatus, setAnnStatus] = useState<{ text: string; ok: boolean } | null>(null);
+
   // Field change states
   const [customXp, setCustomXp] = useState<number>(0);
   const [customStreak, setCustomStreak] = useState<number>(0);
   const [customStreakShields, setCustomStreakShields] = useState<number>(0);
   const [customTier, setCustomTier] = useState<string>('Free');
+
+  // Load announcements via real-time listener
+  useEffect(() => {
+    const col = collection(db, 'announcements');
+    const unsub = onSnapshot(col, (snap) => {
+      const list: Announcement[] = [];
+      snap.forEach((d) => list.push(d.data() as Announcement));
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setAnnouncements(list);
+    }, (err) => {
+      console.warn('Announcements listener failed:', err);
+    });
+    return () => unsub();
+  }, []);
+
+  const handlePostAnnouncement = async () => {
+    if (!annTitle.trim() || !annBody.trim()) {
+      setAnnStatus({ text: 'Title and body are required.', ok: false });
+      return;
+    }
+    setAnnLoading(true);
+    setAnnStatus(null);
+    const id = `ann_${Date.now()}`;
+    const ann: Announcement = {
+      id,
+      title: annTitle.trim(),
+      body: annBody.trim(),
+      author: profile?.email || 'Admin',
+      createdAt: new Date().toISOString(),
+      pinned: annPinned,
+      type: annType,
+    };
+    try {
+      await setDoc(doc(db, 'announcements', id), ann);
+      setAnnTitle('');
+      setAnnBody('');
+      setAnnPinned(false);
+      setAnnType('info');
+      setAnnStatus({ text: '✅ Announcement posted successfully!', ok: true });
+    } catch (err: any) {
+      setAnnStatus({ text: `❌ Failed to post: ${err?.message || err}`, ok: false });
+    } finally {
+      setAnnLoading(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm('Delete this announcement?')) return;
+    try {
+      await deleteDoc(doc(db, 'announcements', id));
+    } catch (err: any) {
+      alert(`Delete failed: ${err?.message || err}`);
+    }
+  };
 
   // Load all profiles from Firebase Cloud Firestore
   const fetchAllProfiles = async () => {
@@ -243,6 +307,112 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, setProfile }) =
         </p>
       </div>
 
+      {/* ── ANNOUNCEMENT COMPOSER ─────────────────────────────── */}
+      <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 max-w-7xl mx-auto w-full">
+        <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+          <Megaphone className="w-4 h-4 text-pine" />
+          <span className="text-xs uppercase font-extrabold text-pine tracking-wide">Post Announcement</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Title</label>
+            <input
+              type="text"
+              value={annTitle}
+              onChange={e => setAnnTitle(e.target.value)}
+              placeholder="e.g. System maintenance on Aug 5"
+              className="w-full px-3 py-2 border border-gray-200 outline-none rounded-xl text-xs bg-gray-50/50 focus:bg-white focus:border-pine font-sans transition"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <div className="flex-1 space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Type</label>
+              <select
+                value={annType}
+                onChange={e => setAnnType(e.target.value as 'info' | 'warning' | 'success')}
+                className="w-full px-3 py-2 border border-gray-200 outline-none rounded-xl text-xs bg-gray-50/50 focus:bg-white focus:border-pine transition"
+              >
+                <option value="info">ℹ️ Info</option>
+                <option value="warning">⚠️ Warning</option>
+                <option value="success">✅ Success</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Pin</label>
+              <button
+                type="button"
+                onClick={() => setAnnPinned(p => !p)}
+                className={`h-9 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition cursor-pointer select-none ${annPinned ? 'bg-pine text-cream border-pine' : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-pine/30'}`}
+              >
+                <Pin className="w-3.5 h-3.5" />
+                {annPinned ? 'Pinned' : 'Pin it'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Body</label>
+          <textarea
+            value={annBody}
+            onChange={e => setAnnBody(e.target.value)}
+            placeholder="Write the announcement message here…"
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-200 outline-none rounded-xl text-xs bg-gray-50/50 focus:bg-white focus:border-pine font-sans transition resize-none"
+          />
+        </div>
+
+        {annStatus && (
+          <div className={`p-2.5 rounded-xl border text-xs font-semibold ${annStatus.ok ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-rose-50 border-rose-100 text-rose-800'}`}>
+            {annStatus.text}
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <button
+            onClick={handlePostAnnouncement}
+            disabled={annLoading}
+            className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-pine to-emerald-800 hover:from-pine-mid text-white font-bold text-xs rounded-xl cursor-pointer select-none shadow hover:shadow-md transition disabled:opacity-50"
+          >
+            {annLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            Post Announcement
+          </button>
+        </div>
+
+        {/* Existing announcements list */}
+        {announcements.length > 0 && (
+          <div className="border-t border-gray-100 pt-4 space-y-2">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Posted ({announcements.length})</span>
+            <div className="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+              {announcements.map(ann => (
+                <div key={ann.id} className="flex items-start justify-between gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {ann.pinned && <Pin className="w-3 h-3 text-pine" />}
+                      <span className="text-xs font-bold text-gray-800 truncate">{ann.title}</span>
+                      <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${ann.type === 'warning' ? 'bg-amber-100 text-amber-800' : ann.type === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
+                        {ann.type || 'info'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-1">{ann.body}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteAnnouncement(ann.id)}
+                    className="p-1.5 hover:bg-rose-50 hover:text-rose-600 text-gray-400 rounded-lg transition cursor-pointer shrink-0"
+                    title="Delete announcement"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── REVIEWEE PROFILES MANAGEMENT ──────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start max-w-7xl mx-auto w-full">
         {/* Left Side: Users Database and Search */}
         <div className="lg:col-span-1 bg-white border border-gray-150 rounded-3xl p-5 shadow-sm space-y-4">

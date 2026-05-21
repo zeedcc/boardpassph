@@ -15,7 +15,8 @@ import {
   MessageSquare,
   Shield,
   Trophy,
-  Calculator
+  Calculator,
+  Megaphone
 } from 'lucide-react';
 import { UserProfile, Question } from './types';
 import { Header } from './components/Header';
@@ -33,6 +34,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { LeaderboardPanel } from './components/LeaderboardPanel';
 import { FocusArenaPanel } from './components/FocusArenaPanel';
 import { WeightedCalculatorPanel } from './components/WeightedCalculatorPanel';
+import { AnnouncementsPanel } from './components/AnnouncementsPanel';
 import { getRandomLocalQuestion } from './utils/questionGenerator';
 import { db } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -589,6 +591,7 @@ export default function App() {
     { id: 'leaderboardTab', label: 'Leaderboard', icon: Trophy },
     { id: 'focusArenaTab', label: 'Focus Arena', icon: Zap },
     { id: 'calculatorTab', label: 'GWA Calculator', icon: Calculator },
+    { id: 'announcementsTab', label: 'Announcements', icon: Megaphone },
     { id: 'feedbackTab', label: 'Feedback', icon: MessageSquare },
     { id: 'billingTab', label: 'Plans', icon: CreditCard },
   ];
@@ -722,6 +725,10 @@ export default function App() {
 
             {activeTab === 'feedbackTab' && (
               <FeedbackPanel profile={profile} />
+            )}
+
+            {activeTab === 'announcementsTab' && (
+              <AnnouncementsPanel />
             )}
 
             {activeTab === 'billingTab' && (

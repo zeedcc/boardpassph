@@ -257,36 +257,21 @@ export const BillingPanel: React.FC<BillingPanelProps> = ({ profile, setProfile 
 
 
 
-              {gainedMessage && (
-                <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 p-2.5 rounded-lg text-[10px] leading-relaxed font-bold animate-in fade-in duration-100">
-                  {gainedMessage}
-                </div>
-              )}
-
-              {/* Close, Copy, Upgrade buttons */}
-              <div className="flex gap-1.5 justify-between items-center select-none mt-2">
+              {/* Copy and Close buttons */}
+              <div className="flex gap-1.5 justify-end items-center select-none mt-2">
                 <button
-                  onClick={handleInstantUpgrade}
-                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition active:scale-95 cursor-pointer text-center"
-                  title="Simulate payment confirmation immediately for this review session"
+                  onClick={handleCopyNo}
+                  className="px-3 py-2 border border-[#005ce6]/20 bg-[#005ce6]/5 text-[#005ce6] text-[10px] font-bold rounded-lg cursor-pointer flex items-center gap-1 transition"
                 >
-                  ⚡ Fast Upgrade
+                  <Copy className="w-3 h-3" />
+                  <span>{copied ? 'Copied' : 'Copy No'}</span>
                 </button>
-                <div className="flex gap-1">
-                  <button
-                    onClick={handleCopyNo}
-                    className="px-3 py-2 border border-[#005ce6]/20 bg-[#005ce6]/5 text-[#005ce6] text-[10px] font-bold rounded-lg cursor-pointer flex items-center gap-1 transition"
-                  >
-                    <Copy className="w-3 h-3" />
-                    <span>{copied ? 'Copied' : 'Copy No'}</span>
-                  </button>
-                  <button
-                    onClick={() => setIsCheckoutOpen(false)}
-                    className="px-3 py-2 hover:bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold rounded-lg cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </div>
+                <button
+                  onClick={() => setIsCheckoutOpen(false)}
+                  className="px-3 py-2 hover:bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold rounded-lg cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
 
             </div>
