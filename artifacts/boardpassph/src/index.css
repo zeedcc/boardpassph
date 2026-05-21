@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "DM Serif Display", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-pine: var(--color-theme-pine, #14352A);
+  --color-pine-mid: var(--color-theme-pine-mid, #1E4D3A);
+  --color-pine-light: var(--color-theme-pine-light, #2E7D5A);
+  --color-sage: var(--color-theme-sage, #5E9E7A);
+  --color-mint: var(--color-theme-mint, #A3CCAF);
+  --color-foam: var(--color-theme-foam, #EAF4EE);
+  --color-cream: var(--color-theme-cream, #F8FAF7);
+  --color-paper: var(--color-theme-paper, #EEECEA);
+}
+
+:root {
+  --color-theme-pine: #1B3518;
+  --color-theme-pine-mid: #2C4E26;
+  --color-theme-pine-light: #4A6E43;
+  --color-theme-sage: #E5526C;
+  --color-theme-mint: #FFAEC1;
+  --color-theme-foam: #F6EFF0;
+  --color-theme-cream: #FCFAF8;
+  --color-theme-paper: #E1EFE3;
+}
+
+[data-theme="strawberry-matcha"] {
+  --color-theme-pine: #1B3518;
+  --color-theme-pine-mid: #2C4E26;
+  --color-theme-pine-light: #4A6E43;
+  --color-theme-sage: #E5526C;
+  --color-theme-mint: #FFAEC1;
+  --color-theme-foam: #F6EFF0;
+  --color-theme-cream: #FCFAF8;
+  --color-theme-paper: #E1EFE3;
+}
+
+[data-theme="lilac-dream"] {
+  --color-theme-pine: #261B4E;
+  --color-theme-pine-mid: #382B6B;
+  --color-theme-pine-light: #5B47A4;
+  --color-theme-sage: #9C85E5;
+  --color-theme-mint: #CABEEF;
+  --color-theme-foam: #F0EDF7;
+  --color-theme-cream: #FAF9FE;
+  --color-theme-paper: #D9D2EC;
+}
+
+[data-theme="winter"] {
+  --color-theme-pine: #0F2038;
+  --color-theme-pine-mid: #1B3150;
+  --color-theme-pine-light: #2A4974;
+  --color-theme-sage: #50A3EF;
+  --color-theme-mint: #A3D3FF;
+  --color-theme-foam: #F1F4FA;
+  --color-theme-cream: #FAFBFD;
+  --color-theme-paper: #D2E0F1;
+}
+
+[data-theme="pastel-pink-coquette"] {
+  --color-theme-pine: #401B22;
+  --color-theme-pine-mid: #612D37;
+  --color-theme-pine-light: #904754;
+  --color-theme-sage: #EC9FA5;
+  --color-theme-mint: #FFCBD6;
+  --color-theme-foam: #FAF0F2;
+  --color-theme-cream: #FFFDFE;
+  --color-theme-paper: #F3DBE1;
+}
+
+[data-theme="red-blush"] {
+  --color-theme-pine: #470D14;
+  --color-theme-pine-mid: #6E1A23;
+  --color-theme-pine-light: #99313C;
+  --color-theme-sage: #F43F5E;
+  --color-theme-mint: #FECDD3;
+  --color-theme-foam: #FFF1F2;
+  --color-theme-cream: #FCFAF9;
+  --color-theme-paper: #F6D5D8;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
