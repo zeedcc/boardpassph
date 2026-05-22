@@ -39,72 +39,71 @@ export const RpgBar: React.FC<RpgBarProps> = ({ profile, setProfile, onNavigate,
   };
 
   return (
-    <div className="bg-gradient-to-r from-foam to-[#deebe3] border-b border-pine/10 px-6 py-4 shadow-sm select-none">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 w-full">
-        {/* Left Side: XP and Level */}
-        <div className="flex-1 min-w-[200px]">
-          <div className="flex justify-between items-baseline mb-1">
-            <span className="font-heading font-black text-pine text-sm uppercase tracking-wider" id="levelTxt">
-              Level {currentLvl}
-            </span>
-            <span className="text-xs font-mono text-pine-light font-bold" id="xpTxt">
-              {currentLvlXp} / {XP_LVL} XP ({xpPercent}%)
-            </span>
-          </div>
-          <div className="h-2.5 w-full bg-pine/10 rounded-full overflow-hidden shadow-inner">
-            <div 
-              className="h-full bg-gradient-to-r from-pine-light to-sage rounded-full transition-all duration-500 ease-out" 
-              style={{ width: `${xpPercent}%` }}
-              id="xpFill"
-            />
-          </div>
+    <div className="bg-gradient-to-r from-foam to-[#deebe3] border-b border-pine/10 px-4 py-3 shadow-sm select-none">
+      <div className="max-w-7xl mx-auto space-y-2">
+        {/* XP bar row */}
+        <div className="flex justify-between items-baseline">
+          <span className="font-heading font-black text-pine text-sm uppercase tracking-wider" id="levelTxt">
+            Level {currentLvl}
+          </span>
+          <span className="text-xs font-mono text-pine-light font-bold" id="xpTxt">
+            {currentLvlXp} / {XP_LVL} XP ({xpPercent}%)
+          </span>
+        </div>
+        <div className="h-2 w-full bg-pine/10 rounded-full overflow-hidden shadow-inner">
+          <div
+            className="h-full bg-gradient-to-r from-pine-light to-sage rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${xpPercent}%` }}
+            id="xpFill"
+          />
         </div>
 
-        {/* Middle Side: RPG Stats Row */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Daily Streak */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50/70 border border-rose-100 rounded-full text-rose-700 text-xs font-bold shadow-sm" title="Your consecutive study days streak.">
-            <Flame className="w-4 h-4 text-rose-500" />
-            <span className="font-mono text-[13px]" id="streakLbl">{profile.streak}d</span>
+        {/* Single stats + actions row */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-0.5">
+          {/* Streak */}
+          <div className="flex items-center gap-1 px-2.5 py-1 bg-rose-50/80 border border-rose-100 rounded-full text-rose-700 text-xs font-bold shadow-sm shrink-0" title="Consecutive study days">
+            <Flame className="w-3.5 h-3.5 text-rose-500" />
+            <span className="font-mono" id="streakLbl">{profile.streak}d</span>
           </div>
 
-          {/* Combo Multiplier */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-amber-800 text-xs font-bold shadow-sm" title="Active correct consecutive answers.">
-            <Zap className="w-4 h-4 text-amber-500" />
-            <span className="font-mono text-[13px]" id="comboLbl">{profile.currentCombo}x</span>
+          {/* Combo */}
+          <div className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full text-amber-800 text-xs font-bold shadow-sm shrink-0" title="Answer combo multiplier">
+            <Zap className="w-3.5 h-3.5 text-amber-500" />
+            <span className="font-mono" id="comboLbl">{profile.currentCombo}x</span>
           </div>
 
-          {/* Shield Protection */}
-          <div 
+          {/* Shields */}
+          <div
             onClick={() => { setIsShopOpen(true); setShopMsg(''); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 hover:border-blue-300 rounded-full text-blue-800 text-xs font-bold shadow-sm cursor-pointer hover:bg-blue-100/50 transition-all active:scale-95" 
-            title="Saves your steak if you miss a day. Click to buy more!"
+            className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 border border-blue-200 hover:border-blue-300 rounded-full text-blue-800 text-xs font-bold shadow-sm cursor-pointer hover:bg-blue-100/60 transition-all active:scale-95 shrink-0"
+            title="Streak shields — click to buy more"
           >
-            <ShieldAlert className="w-4 h-4 text-blue-500" />
-            <span className="font-bold">Shields:</span>
-            <span className="font-mono text-[13px] text-blue-600 bg-blue-100/80 px-1.5 py-0.2 rounded">{profile.streakShields}</span>
+            <ShieldAlert className="w-3.5 h-3.5 text-blue-500" />
+            <span className="font-mono">{profile.streakShields}</span>
           </div>
 
           {/* Accuracy */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-full text-teal-800 text-xs font-bold shadow-sm" title="Accuracy index over overall attempts.">
-            <Percent className="w-3.5 h-3.5 text-teal-600" />
-            <span className="font-mono text-[13px]" id="accLbl">{correctPct !== null ? `${correctPct}%` : '—'}</span>
+          <div className="flex items-center gap-1 px-2.5 py-1 bg-teal-50 border border-teal-200 rounded-full text-teal-800 text-xs font-bold shadow-sm shrink-0" title="Overall accuracy">
+            <Percent className="w-3 h-3 text-teal-600" />
+            <span className="font-mono" id="accLbl">{correctPct !== null ? `${correctPct}%` : '—'}</span>
           </div>
-        </div>
 
-        {/* Right Side: Quick Action Row */}
-        <div className="flex items-center gap-2.5 justify-end">
-          <button 
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Shield Shop */}
+          <button
             onClick={() => { setIsShopOpen(true); setShopMsg(''); }}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 border border-amber-300 text-white font-bold text-xs select-none shadow hover:shadow-md cursor-pointer transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 border border-amber-300 text-white font-bold text-xs shadow hover:shadow-md cursor-pointer transition-all active:scale-95 shrink-0"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>Shield Shop</span>
           </button>
-          
-          <button 
+
+          {/* Logout */}
+          <button
             onClick={onLogout}
-            className="text-gray-500 hover:text-rose-600 hover:bg-rose-50/50 p-2 rounded-full cursor-pointer transition"
+            className="text-gray-400 hover:text-rose-600 hover:bg-rose-50/60 p-1.5 rounded-full cursor-pointer transition shrink-0"
             title="Logout"
           >
             <LogOut className="w-4 h-4" />
