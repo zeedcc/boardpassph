@@ -7,6 +7,16 @@ import {
   UserPlus, Star, Target, Brain, TrendingUp, Shield, Search
 } from 'lucide-react';
 import { UserProfile, Question } from '../types';
+import { db, firestoreWithTimeout } from '../firebase';
+import {
+  doc as firestoreDoc,
+  setDoc,
+  getDoc,
+  onSnapshot,
+  updateDoc,
+  arrayUnion,
+  serverTimestamp
+} from 'firebase/firestore';
 
 interface FocusArenaPanelProps {
   profile: UserProfile;
@@ -748,12 +758,70 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
     showToast(nextVal ? "🧠 Adaptive Board Matrix IQ Auto-scaling enabled!" : "🔒 Fixed study difficulty mode configured.");
   };
 
-  // --- FEATURE 6: PEER STUDY DUEL CHALLENGES ---
+  // --- FEATURE 6: PEER STUDY DUEL CHALLENGES + GROUP STUDY ---
   const [peerEmailInput, setPeerEmailInput] = useState('');
   const [duelBetXp, setDuelBetXp] = useState(100);
   const [activeDuel, setActiveDuel] = useState<any | null>(null);
   const [duelStep, setDuelStep] = useState<'lobby' | 'question' | 'completed'>('lobby');
   const [selectedDuelAnswer, setSelectedDuelAnswer] = useState<number | null>(null);
+
+  // New: Group study room support
+  const [studyMode, setStudyMode] = useState<'duel' | 'group'>('duel');
+  const [groupRoomName, setGroupRoomName] = useState('');
+  const [groupRoomId, setGroupRoomId] = useState<string | null>(null);
+  const [groupRoomLink, setGroupRoomLink] = useState<string | null>(null);
+  const [groupParticipants, setGroupParticipants] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('bp_group_participants');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const LOCAL_GROUP_ROOMS_KEY = 'bp_group_rooms';
+  const getLocalGroupRooms = () => {
+    try {
+      return JSON.parse(localStorage.getItem(LOCAL_GROUP_ROOMS_KEY) || '{}');
+    } catch {
+      return {};
+    }
+  };
+  const saveLocalGroupRooms = (rooms: Record<string, any>) => {
+    localStorage.setItem(LOCAL_GROUP_ROOMS_KEY, JSON.stringify(rooms));
+  };
+  const getLocalGroupRoom = (id: string) => {
+    const rooms = getLocalGroupRooms();
+    return rooms[id] ?? null;
+  };
+  const createLocalGroupRoom = (room: any) => {
+    const rooms = getLocalGroupRooms();
+    rooms[room.id] = room;
+    saveLocalGroupRooms(rooms);
+  };
+  const joinLocalGroupRoom = (id: string, email: string) => {
+    const rooms = getLocalGroupRooms();
+    const room = rooms[id];
+    if (!room) return null;
+    room.participants = Array.from(new Set([...(room.participants || []), email]));
+    rooms[id] = room;
+    saveLocalGroupRooms(rooms);
+    return room;
+  };
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (!event.key || event.key !== LOCAL_GROUP_ROOMS_KEY) return;
+      if (!groupRoomId) return;
+      const room = getLocalGroupRoom(groupRoomId);
+      if (room?.participants) {
+        setGroupParticipants(room.participants);
+      }
+    };
+
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [groupRoomId]);
 
   const DUEL_QUESTIONS = [
     {
@@ -793,6 +861,124 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
     setSelectedDuelAnswer(null);
     playBeepTone(600, 0.35, 'sine');
   };
+
+  // Create a sharable group study room (local-only implementation)
+  const generateRoomId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+
+  const handleCreateGroupRoom = async (e?: React.FormEvent) => {
+    e?.preventDefault?.();
+    if (!groupRoomName.trim()) {
+      alert('Please provide a name for the study space.');
+      return;
+    }
+
+    let id = '';
+    try {
+      id = generateRoomId();
+      const roomRef = firestoreDoc(db, 'studyRooms', id);
+      const data = {
+        id,
+        name: groupRoomName,
+        host: profile.email,
+        participants: [profile.email],
+        createdAt: serverTimestamp()
+      } as any;
+      await firestoreWithTimeout(setDoc(roomRef, data));
+
+      const link = `${window.location.origin}${window.location.pathname}#group-study=${id}`;
+      setGroupRoomId(id);
+      setGroupRoomLink(link);
+
+      // start listening to updates
+      onSnapshot(roomRef, (snap) => {
+        const val = snap.data();
+        if (val) setGroupParticipants(val.participants || []);
+      });
+
+      playBeepTone(700, 0.18, 'sine');
+      showToast(`Study space "${groupRoomName}" created — share the link with classmates.`);
+    } catch (err) {
+      console.error('Failed to create room', err);
+      const localRoom = {
+        id,
+        name: groupRoomName,
+        host: profile.email,
+        participants: [profile.email],
+        createdAt: new Date().toISOString()
+      };
+      createLocalGroupRoom(localRoom);
+      const link = `${window.location.origin}${window.location.pathname}#group-study=${id}`;
+      setGroupRoomId(id);
+      setGroupRoomLink(link);
+      setGroupParticipants(localRoom.participants);
+      showToast(`Study space "${groupRoomName}" created locally. Share the link with classmates.`);
+    }
+  };
+
+  const handleCopyGroupLink = async () => {
+    if (!groupRoomLink) return;
+    try {
+      await navigator.clipboard.writeText(groupRoomLink);
+      showToast('Link copied to clipboard');
+    } catch (e) {
+      // fallback
+      prompt('Copy the study room link:', groupRoomLink);
+    }
+  };
+
+  // Auto-join room if URL hash contains group-study
+  useEffect(() => {
+    if (!profile || !profile.email) return;
+    const hash = window.location.hash || '';
+    const m = hash.match(/group-study=([A-Za-z0-9\-]+)/);
+    if (!m) return;
+    const id = m[1];
+
+    const roomRef = firestoreDoc(db, 'studyRooms', id);
+
+    let unsub: (() => void) | null = null;
+
+    (async () => {
+      try {
+        const snap = await firestoreWithTimeout(getDoc(roomRef));
+        if (!snap.exists()) {
+          showToast('Study room not found.');
+          return;
+        }
+
+        // add self to participants
+        await firestoreWithTimeout(updateDoc(roomRef, { participants: arrayUnion(profile.email) }));
+        setGroupRoomId(id);
+        setGroupRoomLink(`${window.location.origin}${window.location.pathname}#group-study=${id}`);
+
+        unsub = onSnapshot(roomRef, (s) => {
+          const val = s.data();
+          if (val) setGroupParticipants(val.participants || []);
+        });
+
+        playBeepTone(520, 0.12, 'sine');
+        showToast(`Joined study space: ${snap.data()?.name || id}`);
+      } catch (err) {
+        console.error('Failed to join room', err);
+        const localRoom = getLocalGroupRoom(id);
+        if (!localRoom) {
+          showToast('Study room not found.');
+          return;
+        }
+
+        const updatedRoom = joinLocalGroupRoom(id, profile.email);
+        if (updatedRoom) {
+          setGroupRoomId(id);
+          setGroupRoomLink(`${window.location.origin}${window.location.pathname}#group-study=${id}`);
+          setGroupParticipants(updatedRoom.participants || []);
+          playBeepTone(520, 0.12, 'sine');
+          showToast(`Joined study space: ${updatedRoom.name || id}`);
+        }
+      }
+    })();
+
+    return () => { if (unsub) unsub(); };
+  }, [profile]);
 
   const handleAnswerDuelQuestion = () => {
     if (selectedDuelAnswer === null || !activeDuel) return;
@@ -1767,79 +1953,168 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
           <div className="space-y-6">
 
             {duelStep === 'lobby' && (
-              // DUEL LOBBY FORM SYSTEM
+              // DUEL LOBBY FORM SYSTEM (now supports Duel OR Group Study room creation)
               <div className="space-y-5">
                 <div className="p-5 bg-gradient-to-r from-pine/10 to-transparent border border-pine/5 rounded-2xl space-y-2 select-none">
                   <h3 className="text-sm font-bold text-pine uppercase flex items-center gap-1.5 leading-none font-sans">
                     <Users className="w-4 h-4 text-emerald-600 animate-pulse" />
-                    <span>Initiate Peer Study Boardroom Duel</span>
+                    <span>Initiate Peer Study Boardroom Duel or Group Study</span>
                   </h3>
                   <p className="text-xs text-gray-500 leading-relaxed">
-                    Challenge other BoardPassPH candidates or virtual study match reviewees nationwide! Bet virtual Board XP on diagnostic clinical scenarios. Winner claims the entire pot!
+                    Challenge a single peer or create a shared study space for a group. Create a room link and share it with classmates to join.
                   </p>
                 </div>
 
-                <form onSubmit={handleCreateDuel} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-sage uppercase font-mono block">Classmate Reviewee Email:</label>
-                      <input
-                        type="email"
-                        required
-                        value={peerEmailInput}
-                        onChange={(e) => setPeerEmailInput(e.target.value)}
-                        placeholder="E.g., classmate@gmail.com"
-                        className="w-full bg-foam/10 border border-pine/10 text-xs text-gray-800 placeholder-sage outline-none p-3 rounded-xl focus:border-sage font-semibold"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-sage uppercase font-mono block">Wager / Wager / Bet Wager XP Amount:</label>
-                      <select
-                        value={duelBetXp}
-                        onChange={(e) => setDuelBetXp(Number(e.target.value))}
-                        className="w-full bg-white border border-pine/10 text-xs text-gray-800 outline-none p-3 rounded-xl focus:border-sage font-semibold"
-                      >
-                        <option value="50">50 XP Challenge</option>
-                        <option value="100">100 XP Serious Board Duel</option>
-                        <option value="250">250 XP high stakes</option>
-                        <option value="500">500 XP Topnotcher Elite</option>
-                      </select>
-                    </div>
-                  </div>
+                {/* Mode toggle */}
+                <div className="flex gap-2 items-center select-none">
+                  <button
+                    onClick={() => { setStudyMode('duel'); playBeepTone(450, 0.08); }}
+                    className={`px-3 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                      studyMode === 'duel' ? 'bg-pine text-cream font-bold shadow' : 'text-pine hover:bg-gray-50'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Peer Duel</span>
+                  </button>
 
                   <button
-                    type="submit"
-                    className="w-full flex items-center justify-center gap-1 py-3 bg-pine hover:bg-pine-mid text-cream text-xs font-bold uppercase tracking-wider rounded-xl transition shadow-md cursor-pointer select-none"
+                    onClick={() => { setStudyMode('group'); playBeepTone(450, 0.08); }}
+                    className={`px-3 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                      studyMode === 'group' ? 'bg-pine text-cream font-bold shadow' : 'text-pine hover:bg-gray-50'
+                    }`}
                   >
-                    <Trophy className="w-3.5 h-3.5 text-mint animate-bounce" />
-                    <span>Launch Confrontation Vignette Duel</span>
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Group Study</span>
                   </button>
-                </form>
-
-                {/* Virtual reviewees list */}
-                <div className="space-y-2 select-none">
-                  <span className="text-[9.5px] uppercase font-mono text-sage font-black tracking-wide block">Or challenge an active virtual study peer:</span>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {[
-                      { email: 'ust_psychometrician_peer@boardpass.ph', name: 'UST Review Member' },
-                      { email: 'upd_champion_reviewer@boardpass.ph', name: 'UPD Study Mate' },
-                      { email: 'dlsu_psych_scholar@boardpass.ph', name: 'DLSU Clinical Peer' }
-                    ].map(peer => (
-                      <button
-                        key={peer.email}
-                        onClick={() => {
-                          setPeerEmailInput(peer.email);
-                          playBeepTone(450, 0.1);
-                        }}
-                        className="p-3 bg-foam/40 border border-pine/5 rounded-xl hover:border-pine text-left transition"
-                      >
-                        <h5 className="text-[10px] font-bold text-gray-800 leading-tight uppercase">{peer.name}</h5>
-                        <p className="text-[9px] text-gray-400 mt-1">{peer.email}</p>
-                      </button>
-                    ))}
-                  </div>
                 </div>
+
+                {/* Duel mode */}
+                {studyMode === 'duel' && (
+                  <>
+                    <form onSubmit={handleCreateDuel} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-sage uppercase font-mono block">Classmate Reviewee Email:</label>
+                          <input
+                            type="email"
+                            required
+                            value={peerEmailInput}
+                            onChange={(e) => setPeerEmailInput(e.target.value)}
+                            placeholder="E.g., classmate@gmail.com"
+                            className="w-full bg-foam/10 border border-pine/10 text-xs text-gray-800 placeholder-sage outline-none p-3 rounded-xl focus:border-sage font-semibold"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-sage uppercase font-mono block">Wager / Wager / Bet Wager XP Amount:</label>
+                          <select
+                            value={duelBetXp}
+                            onChange={(e) => setDuelBetXp(Number(e.target.value))}
+                            className="w-full bg-white border border-pine/10 text-xs text-gray-800 outline-none p-3 rounded-xl focus:border-sage font-semibold"
+                          >
+                            <option value="50">50 XP Challenge</option>
+                            <option value="100">100 XP Serious Board Duel</option>
+                            <option value="250">250 XP high stakes</option>
+                            <option value="500">500 XP Topnotcher Elite</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full flex items-center justify-center gap-1 py-3 bg-pine hover:bg-pine-mid text-cream text-xs font-bold uppercase tracking-wider rounded-xl transition shadow-md cursor-pointer select-none"
+                      >
+                        <Trophy className="w-3.5 h-3.5 text-mint animate-bounce" />
+                        <span>Launch Confrontation Vignette Duel</span>
+                      </button>
+                    </form>
+
+                    {/* Virtual reviewees list */}
+                    <div className="space-y-2 select-none">
+                      <span className="text-[9.5px] uppercase font-mono text-sage font-black tracking-wide block">Or challenge an active virtual study peer:</span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        {[
+                          { email: 'ust_psychometrician_peer@boardpass.ph', name: 'UST Review Member' },
+                          { email: 'upd_champion_reviewer@boardpass.ph', name: 'UPD Study Mate' },
+                          { email: 'dlsu_psych_scholar@boardpass.ph', name: 'DLSU Clinical Peer' }
+                        ].map(peer => (
+                          <button
+                            key={peer.email}
+                            onClick={() => {
+                              setPeerEmailInput(peer.email);
+                              playBeepTone(450, 0.1);
+                            }}
+                            className="p-3 bg-foam/40 border border-pine/5 rounded-xl hover:border-pine text-left transition"
+                          >
+                            <h5 className="text-[10px] font-bold text-gray-800 leading-tight uppercase">{peer.name}</h5>
+                            <p className="text-[9px] text-gray-400 mt-1">{peer.email}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Group mode */}
+                {studyMode === 'group' && (
+                  <div className="space-y-4">
+                    <form onSubmit={handleCreateGroupRoom} className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-sage uppercase font-mono block">Study Space Name</label>
+                        <input
+                          type="text"
+                          value={groupRoomName}
+                          onChange={(e) => setGroupRoomName(e.target.value)}
+                          placeholder="E.g., Psych Boards Study Group A"
+                          className="w-full bg-foam/10 border border-pine/10 text-xs text-gray-800 outline-none p-3 rounded-xl focus:border-sage font-semibold"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <button
+                          type="submit"
+                          className="w-full flex items-center justify-center gap-1 py-3 bg-pine hover:bg-pine-mid text-cream text-xs font-bold uppercase tracking-wider rounded-xl transition shadow-md cursor-pointer select-none"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>Create Study Space &amp; Generate Link</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => { setGroupRoomName(''); setGroupRoomLink(null); setGroupRoomId(null); playBeepTone(300, 0.08); }}
+                          className="w-full py-3 border border-gray-100 hover:bg-gray-50 text-[10px] font-black uppercase tracking-wider rounded-xl transition cursor-pointer select-none"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </form>
+
+                    {groupRoomLink && (
+                      <div className="p-3 bg-foam/40 border border-pine/5 rounded-xl flex items-start gap-3">
+                        <div className="flex-1">
+                          <h5 className="text-[10px] font-bold text-gray-800">Shareable Link</h5>
+                          <p className="text-[9px] text-gray-600 mt-1 break-all">{groupRoomLink}</p>
+                          <p className="text-[9px] text-gray-500 mt-1">Participants: {groupParticipants.length}</p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={handleCopyGroupLink}
+                            className="px-3 py-2 bg-foam/20 border border-pine/10 rounded-lg text-[10px] font-bold"
+                          >
+                            Copy Link
+                          </button>
+                          <button
+                            onClick={() => { navigator.share ? navigator.share({ title: groupRoomName, url: groupRoomLink }) : handleCopyGroupLink(); }}
+                            className="px-3 py-2 bg-white border border-gray-100 rounded-lg text-[10px] font-bold"
+                          >
+                            Share
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
               </div>
             )}

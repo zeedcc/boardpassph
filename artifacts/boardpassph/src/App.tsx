@@ -40,7 +40,7 @@ import { WeightedCalculatorPanel } from './components/WeightedCalculatorPanel';
 import { AnnouncementsPanel } from './components/AnnouncementsPanel';
 import { ProfilePanel } from './components/ProfilePanel';
 import { getRandomLocalQuestion } from './utils/questionGenerator';
-import { db } from './firebase';
+import { db, firestoreWithTimeout } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const THEME_OPTIONS = [
@@ -74,6 +74,13 @@ export default function App() {
     localStorage.setItem('bp_theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (!profile) return;
+    if (window.location.hash.includes('group-study=')) {
+      setActiveTab('focusArenaTab');
+    }
+  }, [profile]);
+
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced'>('synced');
 
   useEffect(() => {
@@ -85,7 +92,7 @@ export default function App() {
       setSyncStatus('syncing');
       try {
         const docRef = doc(db, 'profiles', profile.email);
-        await setDoc(docRef, profile);
+        await firestoreWithTimeout(setDoc(docRef, profile));
         setSyncStatus('synced');
       } catch (err) {
         console.warn('Background cloud profile synchronization deferred:', err);
@@ -123,7 +130,7 @@ export default function App() {
 
     try {
       const docRef = doc(db, 'profiles', emailLower);
-      const docSnap = await getDoc(docRef);
+      const docSnap = await firestoreWithTimeout(getDoc(docRef));
       if (docSnap.exists()) {
         storedProfile = docSnap.data() as UserProfile;
       }
@@ -173,7 +180,7 @@ export default function App() {
       try {
         setSyncStatus('syncing');
         const docRef = doc(db, 'profiles', emailLower);
-        await setDoc(docRef, newProfile);
+        await firestoreWithTimeout(setDoc(docRef, newProfile));
         setSyncStatus('synced');
         alert("🎉 Cloud Account Created Successfully! Welcome to BoardPassPH.");
       } catch (err) {
@@ -245,7 +252,7 @@ export default function App() {
       if (fallbackUsed) {
         try {
           setSyncStatus('syncing');
-          await setDoc(doc(db, 'profiles', emailLower), storedProfile);
+          await firestoreWithTimeout(setDoc(doc(db, 'profiles', emailLower), storedProfile));
           setSyncStatus('synced');
         } catch (syncErr) {
           setSyncStatus('synced');
@@ -269,7 +276,7 @@ export default function App() {
     
     let loadedProfile: UserProfile | null = null;
     try {
-      const docSnap = await getDoc(doc(db, 'profiles', emailLower));
+      const docSnap = await firestoreWithTimeout(getDoc(doc(db, 'profiles', emailLower)));
       if (docSnap.exists()) {
         loadedProfile = docSnap.data() as UserProfile;
       }
@@ -306,7 +313,7 @@ export default function App() {
     
     try {
       setSyncStatus('syncing');
-      await setDoc(doc(db, 'profiles', recoveredProfile.email), recoveredProfile);
+      await firestoreWithTimeout(setDoc(doc(db, 'profiles', recoveredProfile.email), recoveredProfile));
       setSyncStatus('synced');
       alert("💚 Password reset successful! Cloud credentials synchronized. Log in below with your updated password.");
     } catch (err) {
@@ -539,54 +546,47 @@ export default function App() {
               </div>
 
               {recoveryStep === 'email' ? (
-                <form onSubmit={handleForgotPasswordVerify} className="space-y-4">
-                  <p className="text-[11px] text-mint/70 leading-relaxed">
-                    Forgot your password? Specify your registered email below to fetch your security hint and establish a replacement passcode.
-                  </p>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-mint/80 tracking-wider block font-mono">Reviewee Email</label>
-                    <input
-                      type="email"
-                      required
-                      value={recoveryEmail}
-                      onChange={(e) => setRecoveryEmail(e.target.value)}
-                      placeholder="name@example.com"
-                      className="w-full bg-pine border border-pine-light/30 text-xs font-semibold text-cream placeholder-mint/30 px-4 py-2.5 rounded-xl outline-none focus:border-mint transition-all text-center"
-                    />
-                  </div>
-                  <button type="submit" className="w-full py-2.5 bg-mint text-pine font-sans uppercase tracking-widest font-black text-xs rounded-xl cursor-pointer">
-                    Retrieve Password Hint
-                  </button>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  {recoveredProfile?.passwordHint && (
-                    <div className="bg-pine/50 border border-pine-light/20 rounded-xl p-3">
-                      <span className="text-[10px] uppercase font-bold text-mint/80 tracking-wider block font-mono mb-1">Your Password Hint</span>
-                      <p className="text-xs text-cream font-medium">{recoveredProfile.passwordHint}</p>
-                    </div>
-                  )}
-                  <form onSubmit={handlePasswordResetSubmit} className="space-y-3">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-bold text-mint/80 tracking-wider block font-mono">New Password</label>
-                      <input
-                        type="password"
-                        required
-                        value={newPasswordInput}
-                        onChange={(e) => setNewPasswordInput(e.target.value)}
-                        placeholder="New secure password"
-                        className="w-full bg-pine border border-pine-light/30 text-xs font-semibold text-cream placeholder-mint/30 px-4 py-2.5 rounded-xl outline-none focus:border-mint transition-all text-center"
-                      />
-                    </div>
-                    <button type="submit" className="w-full py-2.5 bg-mint text-pine font-sans uppercase tracking-widest font-black text-xs rounded-xl cursor-pointer">
-                      Reset Password
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                function showForgotPassword() {
+  const loginView = document.getElementById('loginView');
+  const forgotView = document.getElementById('forgotView');
+  if (loginView) loginView.style.display = 'none';
+  if (forgotView) forgotView.style.display = 'flex';
+
+  const loginEmail = (document.getElementById('loginEmail')?.value || '').trim();
+  const resetEmail = document.getElementById('resetEmail');
+  if (resetEmail && loginEmail) resetEmail.value = loginEmail;
+
+  setTimeout(()=>document.getElementById('resetEmail')?.focus(), 100);
+}
+
+async function sendFirebasePasswordReset() {
+  const auth = requireFirebaseAuth();
+  if (!auth) return;
+
+  const email = (document.getElementById('resetEmail')?.value || '').trim().toLowerCase();
+  const errEl = document.getElementById('resetError');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (errEl) errEl.textContent = '⚠️ Please enter a valid registered email.';
+    return;
+  }
+
+  try {
+    await auth.sendPasswordResetEmail(email);
+
+    if (errEl) {
+      errEl.style.color = 'var(--matcha)';
+      errEl.textContent = '✅ Password reset link sent. Check your inbox or spam folder.';
+    }
+    toast('Password reset link sent. 📧', 'success', 6000);
+  } catch (error) {
+    console.error('[PMLeBoards] Password reset failed:', error);
+    if (errEl) {
+      errEl.style.color = 'var(--strawberry)';
+      errEl.textContent = error?.message || 'Could not send reset link.';
+    }
+  }
+}
 
         <p className="text-[10px] text-mint/30 mt-6 text-center font-mono select-none">
           BoardPassPH v2.0 · AI-Powered Philippine Psych Board Review

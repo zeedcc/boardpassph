@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, doc } from 'firebase/firestore';
 import firebaseConfigRaw from '../firebase-applet-config.json';
 
 type FirebaseConfig = {
@@ -23,20 +23,12 @@ export const db = useDefaultFirestore
   : getFirestore(app, firestoreDatabaseId);
 export const auth = getAuth();
 
-signInAnonymously(auth).catch((err) => {
-  console.warn('Firebase Auth anonymous login failed:', err);
-});
-
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration or network status.');
-    }
-  }
+export async function firestoreWithTimeout<T>(operation: Promise<T>, timeoutMs = 4000): Promise<T> {
+  return Promise.race([
+    operation,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Firestore operation timed out')), timeoutMs))
+  ]) as Promise<T>;
 }
-testConnection();
 
 export enum OperationType {
   CREATE = 'create',
