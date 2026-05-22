@@ -398,17 +398,16 @@ export default function App() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pine via-pine-mid to-[#091b14] flex flex-col justify-center items-center p-6 relative overflow-hidden transition-all duration-300">
-        
         <div className="absolute top-5 right-5 z-50 bg-pine-mid/90 border border-pine-light/30 backdrop-blur rounded-2xl shadow-xl px-4 py-3 flex flex-col gap-2.5 min-w-[120px]">
           <span className="text-[9px] uppercase font-black text-mint/70 tracking-widest font-mono select-none text-center">Theme</span>
           <div className="grid grid-cols-5 gap-1.5">
             {[
-              { id: 'strawberry-matcha',   color: '#E5526C', label: 'Berry'  },
-              { id: 'lilac-dream',          color: '#9C85E5', label: 'Lilac'  },
-              { id: 'winter',               color: '#50A3EF', label: 'Frost'  },
-              { id: 'pastel-pink-coquette', color: '#EC9FA5', label: 'Rose'   },
-              { id: 'red-blush',            color: '#F43F5E', label: 'Blush'  },
-            ].map(opt => (
+              { id: 'strawberry-matcha', color: '#E5526C', label: 'Berry' },
+              { id: 'lilac-dream', color: '#9C85E5', label: 'Lilac' },
+              { id: 'winter', color: '#50A3EF', label: 'Frost' },
+              { id: 'pastel-pink-coquette', color: '#EC9FA5', label: 'Rose' },
+              { id: 'red-blush', color: '#F43F5E', label: 'Blush' },
+            ].map((opt) => (
               <button
                 key={opt.id}
                 onClick={() => handleThemeChange(opt.id)}
@@ -416,7 +415,9 @@ export default function App() {
                 className="flex flex-col items-center gap-1 cursor-pointer select-none group"
               >
                 <span
-                  className={`w-8 h-8 rounded-xl block transition-all duration-150 shadow-sm border-2 ${theme === opt.id ? 'border-white scale-110 shadow-md' : 'border-white/20 group-hover:border-white/60 group-hover:scale-105'}`}
+                  className={`w-8 h-8 rounded-xl block transition-all duration-150 shadow-sm border-2 ${
+                    theme === opt.id ? 'border-white scale-110 shadow-md' : 'border-white/20 group-hover:border-white/60 group-hover:scale-105'
+                  }`}
                   style={{ background: opt.color }}
                 />
               </button>
@@ -430,7 +431,6 @@ export default function App() {
 
         <div className="max-w-md w-full bg-pine-mid/95 backdrop-blur-md rounded-3xl border border-pine-light/30 shadow-2xl p-8 relative z-10 text-center space-y-6">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-mint via-sage to-pine-light" />
-          
           <div className="space-y-2">
             <div className="w-14 h-14 bg-pine rounded-2xl border border-pine-light/30 shadow-inner flex items-center justify-center mx-auto mb-2 text-mint">
               <BookOpen className="w-7 h-7" />
@@ -444,153 +444,85 @@ export default function App() {
             </p>
           </div>
 
-          {authMode !== 'forgot' ? (
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 p-1 bg-pine border border-pine-light/10 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => { setAuthMode('login'); setPasswordInput(''); }}
-                  className={`py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                    authMode === 'login' ? 'bg-mint text-pine shadow' : 'text-cream/60 hover:text-cream'
-                  }`}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAuthMode('signup'); setPasswordInput(''); }}
-                  className={`py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                    authMode === 'signup' ? 'bg-mint text-pine shadow' : 'text-cream/60 hover:text-cream'
-                  }`}
-                >
-                  Sign Up
-                </button>
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 p-1 bg-pine border border-pine-light/10 rounded-xl">
+              <button
+                type="button"
+                onClick={() => { setAuthMode('login'); setPasswordInput(''); }}
+                className={`py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                  authMode === 'login' ? 'bg-mint text-pine shadow' : 'text-cream/60 hover:text-cream'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('signup'); setPasswordInput(''); }}
+                className={`py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                  authMode === 'signup' ? 'bg-mint text-pine shadow' : 'text-cream/60 hover:text-cream'
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
+
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              <div className="space-y-1.5 text-left">
+                <label className="text-[10px] uppercase font-bold text-mint/80 tracking-wider block font-mono">
+                  Registered Reviewee Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full bg-pine border border-pine-light/30 text-xs font-semibold text-cream placeholder-mint/30 px-4 py-2.5 rounded-xl outline-none focus:border-mint focus:ring-4 focus:ring-mint/10 transition-all text-center"
+                />
               </div>
 
-              <form onSubmit={handleAuthSubmit} className="space-y-4">
+              <div className="space-y-1.5 text-left">
+                <label className="text-[10px] uppercase font-bold text-mint/80 tracking-wider block font-mono">
+                  Security Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-pine border border-pine-light/30 text-xs font-semibold text-cream placeholder-mint/30 px-4 py-2.5 rounded-xl outline-none focus:border-mint focus:ring-4 focus:ring-mint/10 transition-all text-center"
+                />
+              </div>
+
+              {authMode === 'signup' && (
                 <div className="space-y-1.5 text-left">
                   <label className="text-[10px] uppercase font-bold text-mint/80 tracking-wider block font-mono">
-                    Registered Reviewee Email
+                    Password Hint (Display on Recovery)
                   </label>
                   <input
-                    type="email"
-                    required
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="name@example.com"
+                    type="text"
+                    value={passwordHintInput}
+                    onChange={(e) => setPasswordHintInput(e.target.value)}
+                    placeholder="e.g. My puppy name / mom bday"
                     className="w-full bg-pine border border-pine-light/30 text-xs font-semibold text-cream placeholder-mint/30 px-4 py-2.5 rounded-xl outline-none focus:border-mint focus:ring-4 focus:ring-mint/10 transition-all text-center"
                   />
                 </div>
+              )}
 
-                <div className="space-y-1.5 text-left">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[10px] uppercase font-bold text-mint/80 tracking-wider block font-mono">
-                      Security Password
-                    </label>
-                    {authMode === 'login' && (
-                      <button
-                        type="button"
-                        onClick={() => { setAuthMode('forgot'); setRecoveryStep('email'); setRecoveryEmail(emailInput); }}
-                        className="text-[10px] font-bold text-mint hover:underline font-mono cursor-pointer"
-                      >
-                        Forgot Password?
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-pine border border-pine-light/30 text-xs font-semibold text-cream placeholder-mint/30 px-4 py-2.5 rounded-xl outline-none focus:border-mint focus:ring-4 focus:ring-mint/10 transition-all text-center"
-                  />
-                </div>
+              <button
+                type="submit"
+                className="w-full mt-2 py-3 bg-mint text-pine font-sans uppercase tracking-widest font-black text-xs rounded-xl shadow-md cursor-pointer select-none border-b-2 border-emerald-700 hover:bg-white hover:scale-[1.01] active:scale-[0.99] transition-all"
+              >
+                {authMode === 'login' ? 'Enter Board Room' : 'Create Credentials'}
+              </button>
+            </form>
+          </div>
 
-                {authMode === 'signup' && (
-                  <div className="space-y-1.5 text-left">
-                    <label className="text-[10px] uppercase font-bold text-mint/80 tracking-wider block font-mono">
-                      Password Hint (Display on Recovery)
-                    </label>
-                    <input
-                      type="text"
-                      value={passwordHintInput}
-                      onChange={(e) => setPasswordHintInput(e.target.value)}
-                      placeholder="e.g. My puppy name / mom bday"
-                      className="w-full bg-pine border border-pine-light/30 text-xs font-semibold text-cream placeholder-mint/30 px-4 py-2.5 rounded-xl outline-none focus:border-mint focus:ring-4 focus:ring-mint/10 transition-all text-center"
-                    />
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full mt-2 py-3 bg-mint text-pine font-sans uppercase tracking-widest font-black text-xs rounded-xl shadow-md cursor-pointer select-none border-b-2 border-emerald-700 hover:bg-white hover:scale-[1.01] active:scale-[0.99] transition-all"
-                >
-                  {authMode === 'login' ? 'Enter Board Room' : 'Create Credentials'}
-                </button>
-              </form>
-            </div>
-          ) : (
-            <div className="space-y-5 text-left">
-              <div className="flex items-center justify-between border-b border-pine-light/20 pb-2">
-                <h3 className="text-xs uppercase font-bold text-cream tracking-wider font-mono">
-                  🔑 Credentials Recovery Panel
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => { setAuthMode('login'); setRecoveryEmail(''); setRecoveryStep('email'); setRecoveredProfile(null); setNewPasswordInput(''); }}
-                  className="text-[10px] uppercase font-extrabold text-mint hover:underline font-mono cursor-pointer"
-                >
-                  Back to Log In
-                </button>
-              </div>
-
-              {recoveryStep === 'email' ? (
-                function showForgotPassword() {
-  const loginView = document.getElementById('loginView');
-  const forgotView = document.getElementById('forgotView');
-  if (loginView) loginView.style.display = 'none';
-  if (forgotView) forgotView.style.display = 'flex';
-
-  const loginEmail = (document.getElementById('loginEmail')?.value || '').trim();
-  const resetEmail = document.getElementById('resetEmail');
-  if (resetEmail && loginEmail) resetEmail.value = loginEmail;
-
-  setTimeout(()=>document.getElementById('resetEmail')?.focus(), 100);
-}
-
-async function sendFirebasePasswordReset() {
-  const auth = requireFirebaseAuth();
-  if (!auth) return;
-
-  const email = (document.getElementById('resetEmail')?.value || '').trim().toLowerCase();
-  const errEl = document.getElementById('resetError');
-
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    if (errEl) errEl.textContent = '⚠️ Please enter a valid registered email.';
-    return;
-  }
-
-  try {
-    await auth.sendPasswordResetEmail(email);
-
-    if (errEl) {
-      errEl.style.color = 'var(--matcha)';
-      errEl.textContent = '✅ Password reset link sent. Check your inbox or spam folder.';
-    }
-    toast('Password reset link sent. 📧', 'success', 6000);
-  } catch (error) {
-    console.error('[PMLeBoards] Password reset failed:', error);
-    if (errEl) {
-      errEl.style.color = 'var(--strawberry)';
-      errEl.textContent = error?.message || 'Could not send reset link.';
-    }
-  }
-}
-
-        <p className="text-[10px] text-mint/30 mt-6 text-center font-mono select-none">
-          BoardPassPH v2.0 · AI-Powered Philippine Psych Board Review
-        </p>
+          <p className="text-[10px] text-mint/30 mt-6 text-center font-mono select-none">
+            BoardPassPH v2.0 · AI-Powered Philippine Psych Board Review
+          </p>
+        </div>
       </div>
     );
   }
