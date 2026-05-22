@@ -42,6 +42,7 @@ export interface Question {
 export interface UserProfile {
   email: string;
   tier: 'Free' | 'Pro' | 'Clinical' | 'Clinical Trial';
+  adaptive: boolean;
   coins?: number;
   username?: string;
   school?: string;
@@ -53,7 +54,6 @@ export interface UserProfile {
   currentCombo: number;
   attempts: number;
   correct: number;
-  adaptive: boolean;
   deck: Question[];
   notes: Record<string, string>;
   heat: Record<string, number>;
