@@ -1,8 +1,20 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+import firebaseConfigRaw from '../firebase-applet-config.json';
 
+type FirebaseConfig = {
+  projectId: string;
+  appId: string;
+  apiKey: string;
+  authDomain: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  measurementId: string;
+  firestoreDatabaseId?: string;
+};
+
+const firebaseConfig = firebaseConfigRaw as FirebaseConfig;
 const app = initializeApp(firebaseConfig);
 const useDefaultFirestore = !firebaseConfig.firestoreDatabaseId || firebaseConfig.firestoreDatabaseId === '(default)';
 export const db = useDefaultFirestore
