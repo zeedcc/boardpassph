@@ -692,7 +692,7 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
     setProfile(p => {
       if (!p) return null;
       
-      const updatedChallenges = {
+      const updatedChallenges: Record<string, 'correct' | 'incorrect'> = {
         ...(p.dailyChallenges || {}),
         [todayString]: statusVal
       };
@@ -717,7 +717,7 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
   const handleClearDailyChallenge = () => {
     setProfile(p => {
       if (!p) return null;
-      const updatedChallenges = { ...(p.dailyChallenges || {}) };
+      const updatedChallenges: Record<string, 'correct' | 'incorrect'> = { ...(p.dailyChallenges || {}) };
       delete updatedChallenges[todayString];
       return {
         ...p,

@@ -787,7 +787,6 @@ export default function App() {
               <StudyPlannerPanel 
                 profile={profile} 
                 setProfile={setProfile as React.Dispatch<React.SetStateAction<UserProfile>>}
-                onNavigate={setActiveTab}
               />
             )}
 
@@ -813,8 +812,7 @@ export default function App() {
 
             {activeTab === 'libraryTab' && (
               <LibraryPanel
-                onPracticeLocalTest={handlePracticeLocalTest}
-                onFetchQuestion={handleFetchQuestion}
+                onPracticeTest={handlePracticeLocalTest}
               />
             )}
 
@@ -827,7 +825,7 @@ export default function App() {
             )}
 
             {activeTab === 'analyticsTab' && (
-              <AnalyticsPanel profile={profile} />
+              <AnalyticsPanel profile={profile} setProfile={setProfile as React.Dispatch<React.SetStateAction<UserProfile>>} />
             )}
 
             {activeTab === 'leaderboardTab' && (
@@ -838,7 +836,7 @@ export default function App() {
               <FocusArenaPanel
                 profile={profile}
                 setProfile={setProfile as React.Dispatch<React.SetStateAction<UserProfile>>}
-                onFetchQuestion={handleFetchQuestion}
+                onNavigate={setActiveTab}
               />
             )}
 

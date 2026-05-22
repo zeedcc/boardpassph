@@ -160,9 +160,9 @@ Provide a creative, memorable word-acronym (e.g., SIGECAPS) or phrase, and clear
       }
     });
 
-    res.json({ mnemonic: response.text });
+    return res.json({ mnemonic: response.text });
   } catch (error: any) {
-    res.json({
+    return res.json({
       mnemonic: `**FALLBACK MNEMONIC: S-M-A-R-T**\n\n*   **S**ymptom review: Track standard clinical indexes daily.\n*   **M**ental status: Assess appearance, mood, affect, and raw thoughts.\n*   **A**lliance build: Guarantee secure therapeutic bond.\n*   **R**oot cause: Exclude secondary substances or physical ailments.\n*   **T**reatment: Pair evidence-based psychotherapeutic and pharmacological protocols.`,
       isFallback: true
     });
@@ -174,7 +174,7 @@ router.post("/submit-feedback", (req, res) => {
   if (!email || !message) {
     return res.status(400).json({ error: "Required feedback parameters are missing." });
   }
-  res.json({
+  return res.json({
     success: true,
     message: `Feedback for topic "${topic}" has been registered. Thank you!`
   });
