@@ -107,25 +107,10 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
         fetchedProfiles.push(doc.data());
       });
     } catch (err: any) {
-      console.warn('Leaderboard connection failed, loading local board room peers:', err);
+      console.warn('Leaderboard connection failed while loading profiles from Firestore:', err);
     }
 
-    // Dynamic Philippine Topnotcher Backup Seed Data (guarantees a flawless board exam feeling even if database collection is empty/first boot)
-    const backupPeers = [
-      { email: 'topnotcher1_up@boardpass.ph', totalXp: 15450, streak: 42, correct: 480, attempts: 512, tier: 'Clinical' },
-      { email: 'psych_ust_ace@boardpass.ph', totalXp: 13900, streak: 35, correct: 395, attempts: 420, tier: 'Clinical' },
-      { email: 'dlsu_psy_fellow@boardpass.ph', totalXp: 12200, streak: 28, correct: 340, attempts: 380, tier: 'Pro' },
-      { email: 'ateneo_pioneer@boardpass.ph', totalXp: 11050, streak: 26, correct: 290, attempts: 310, tier: 'Clinical Trial' },
-      { email: 'slu_baguio_top@boardpass.ph', totalXp: 9800, streak: 21, correct: 250, attempts: 275, tier: 'Clinical' },
-      { email: 'usc_cebu_genius@boardpass.ph', totalXp: 8520, streak: 19, correct: 220, attempts: 245, tier: 'Free' },
-      { email: 'pup_manila_core@boardpass.ph', totalXp: 7410, streak: 18, correct: 198, attempts: 220, tier: 'Clinical' },
-      { email: 'plm_boards_champ@boardpass.ph', totalXp: 6990, streak: 14, correct: 184, attempts: 200, tier: 'Pro' },
-      { email: 'um_davao_scholar@boardpass.ph', totalXp: 5400, streak: 12, correct: 150, attempts: 172, tier: 'Clinical Trial' },
-      { email: 'xu_cdo_prc@boardpass.ph', totalXp: 4850, streak: 10, correct: 132, attempts: 150, tier: 'Free' }
-    ];
-
-    // Combine or replace fetched results
-    let rawList = fetchedProfiles.length > 0 ? fetchedProfiles : [...backupPeers];
+    const rawList = [...fetchedProfiles];
 
     // Insert active current user into list if they are not already retrieved to ensure they see their relative position
     const currentUserInList = rawList.some(p => p.email.toLowerCase() === profile.email.toLowerCase());
