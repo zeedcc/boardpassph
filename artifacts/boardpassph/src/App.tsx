@@ -107,7 +107,6 @@ export default function App() {
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [loadingQuestion, setLoadingQuestion] = useState(false);
   const [selectedModel, setSelectedModel] = useState<'budget' | 'standard' | 'premium'>('budget');
-  const MODEL_COIN_COSTS = { budget: 5, standard: 100, premium: 200 } as const;
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,21 +338,6 @@ export default function App() {
     fileMimeType?: string
   ) => {
     if (!profile) return;
-
-    const coinCost = MODEL_COIN_COSTS[selectedModel];
-    const currentCoins = profile.coins ?? 0;
-
-    if (currentCoins < coinCost) {
-      alert(`⚠️ Not enough coins!\n\nThis model costs ${coinCost} coins per question.\nYour balance: ${currentCoins.toLocaleString()} coins.\n\nBuy more coins in the Plans tab.`);
-      return;
-    }
-
-    setProfile(prev => {
-      if (!prev) return prev;
-      const updated = { ...prev, coins: (prev.coins ?? 0) - coinCost };
-      localStorage.setItem(`bp_profile_${prev.email}`, JSON.stringify(updated));
-      return updated;
-    });
 
     setLoadingQuestion(true);
     setCurrentQuestion(null);
