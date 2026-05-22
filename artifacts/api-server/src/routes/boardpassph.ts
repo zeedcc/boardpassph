@@ -36,7 +36,7 @@ const MODEL_MAP: Record<string, string> = {
 };
 
 router.post("/generate-question", async (req, res) => {
-  const { focusArea, source, fileData, fileMimeType, difficulty = "random", model } = req.body;
+  const { focusArea, source, fileData, fileMimeType, difficulty = "random", model, previousQuestions } = req.body;
   const queryModel = MODEL_MAP[model] || "gemini-2.0-flash";
 
   try {
@@ -52,6 +52,13 @@ router.post("/generate-question", async (req, res) => {
       focusInstructions += `\n\nCRITICAL STRATIFICATION - HARD DIFFICULTY: The question must focus on diagnostic criteria but incorporate complex differential diagnosis, subtle exclusion rules, or include a "No diagnosis / criteria not met" option. In some cases the correct answer must be 'No diagnosis; the criteria for a mental disorder abnormality are not met'.`;
     } else {
       focusInstructions += `\n\nCRITICAL STRATIFICATION - RANDOM DIFFICULTY: Select a random difficulty (easy, medium, or hard), and craft the question accordingly.`;
+    }
+
+    focusInstructions += `\n\nUNIQUENESS CLAUSE: Do not repeat previously generated questions or reuse the same clinical scenario, diagnosis, or learning objective. Create a new question with a different patient profile, concept, or exam angle whenever possible.`;
+
+    if (Array.isArray(previousQuestions) && previousQuestions.length > 0) {
+      focusInstructions += `\n\nDO NOT GENERATE A DUPLICATE: Compare the generated question against the list of previous questions below and avoid any semantically similar or repeated vignette, diagnosis, or answer structure.`;
+      focusInstructions += `\n\nPREVIOUS QUESTIONS:\n${previousQuestions.map((q: string, idx: number) => `${idx + 1}. "${q}"`).join("\n")}`;
     }
 
     if (source === "pharma") {
@@ -76,6 +83,7 @@ Ask about its age range, subscales, developer, scoring methodology, or ideal int
 Generate a valid multiple choice test question. The vignette should be dense, diagnostic, and contextual.
 Provide exactly 4 options. Specify the 0-indexed correct option.
 Provide a clear high-yield explanation detailing why the correct option is correct and why the distractors are wrong.
+If previous questions are provided, avoid any duplicate or semantically similar questions.
 IMPORTANT: Place the correct answer at a RANDOM position among the 4 options — do NOT always make it the first option.
 Return a valid JSON object matching the requested schema.`;
 
