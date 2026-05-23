@@ -14,6 +14,7 @@ interface LeaderboardPanelProps {
 interface RankedEntry {
   rank: number;
   email: string;
+  username?: string;
   totalXp: number;
   streak: number;
   correct: number;
@@ -30,7 +31,23 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
   const [errorText, setErrorText] = useState<string | null>(null);
 
   // Anonymization helper to guard student privacy, but highlight the current active user
-  const renderObfuscatedName = (email: string, isCurrentUser: boolean) => {
+  const renderObfuscatedName = (email: string, isCurrentUser: boolean, username?: string) => {
+    if (username?.trim()) {
+      if (isCurrentUser) {
+        return (
+          <span className="flex items-center gap-1.5 text-pine font-black font-sans">
+            <span>YOU (@{username.trim()})</span>
+            <span className="text-[8px] bg-pine/10 text-pine px-1.5 py-0.5 rounded uppercase font-mono font-bold">Active</span>
+          </span>
+        );
+      }
+      return (
+        <div className="flex flex-col leading-tight">
+          <span className="font-bold text-gray-700 font-mono text-xs">@{username.trim()}</span>
+          <span className="text-[9px] text-sage font-sans font-medium">{getPinoyAffiliation(email)}</span>
+        </div>
+      );
+    }
     if (!email) return 'Anonymous Candidate';
     if (isCurrentUser) {
       return (
@@ -117,6 +134,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
     if (!currentUserInList) {
       rawList.push({
         email: profile.email,
+        username: profile.username,
         totalXp: profile.totalXp,
         streak: profile.streak,
         correct: profile.correct,
@@ -144,6 +162,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
     const mapped: RankedEntry[] = sorted.map((item, idx) => ({
       rank: idx + 1,
       email: item.email,
+      username: item.username,
       totalXp: item.totalXp || 0,
       streak: item.streak || 0,
       correct: item.correct || 0,
@@ -164,7 +183,8 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
   const filteredEntries = entries.filter(e => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
-    return e.email.toLowerCase().includes(q);
+    const username = (e.username || '').toLowerCase();
+    return e.email.toLowerCase().includes(q) || username.includes(q);
   });
 
   // Calculate self position
@@ -288,7 +308,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search reviewee email..."
+            placeholder="Search by username or email..."
             className="w-full bg-white border border-gray-100 text-xs text-gray-700 placeholder-sage px-10 py-2.5 rounded-2xl outline-none focus:ring-4 focus:ring-pine/5 focus:border-sage transition shadow-sm font-semibold"
           />
         </div>
@@ -399,7 +419,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
                       {/* Anonymized Email & School info */}
                       <td className="py-3 px-4 align-middle">
                         <div className="flex items-center gap-1.5">
-                          {renderObfuscatedName(item.email, item.isCurrentUser)}
+                          {renderObfuscatedName(item.email, item.isCurrentUser, item.username)}
                           {item.rank <= 10 && (
                             <span className="text-[8px] uppercase font-mono font-bold text-[#b45309] bg-[#fef3c7] px-1.5 py-0.5 rounded ml-1 animate-pulse select-none border border-amber-250">
                               Topnotcher Merit

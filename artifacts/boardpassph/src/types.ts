@@ -71,7 +71,8 @@ export interface UserProfile {
   rememberQuestionHistory?: boolean;
   autoSubjectAccuracy?: boolean;
   habits?: string[];
-  questionHistory?: string[]; // store question vignette hashes or ids to avoid repeats
+  habitDefinitions?: { id: string; name: string; xp: number }[];
+  questionHistory?: string[]; // vignette snippets for AI deduplication
   subjectAccuracy?: Record<string, number>;
 }
 

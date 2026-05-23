@@ -4,6 +4,14 @@ import {
   Heart, Edit3, ArrowRight, Upload, X, FileText, Trash2, CheckSquare
 } from 'lucide-react';
 import { Question, UserProfile } from '../types';
+import {
+  getDailyQuestionLimit,
+  getQuestionsUsedToday,
+  getSubjectKey,
+  isLimitedTier,
+  recordQuestionVignette,
+  updateSubjectAccuracy,
+} from '../utils/profileHelpers';
 
 interface PracticePanelProps {
   profile: UserProfile;
@@ -86,6 +94,10 @@ export const PracticePanel: React.FC<PracticePanelProps> = ({
 
   // Triggers fetching a question
   const handleFetchNext = () => {
+    if (atDailyLimit) {
+      alert(`Daily AI question limit reached (${dailyLimit}/day on ${profile.tier}). Upgrade in Billing for unlimited practice.`);
+      return;
+    }
     setSelectedIdx(null);
     setAnsweredState('pending');
     setMnemonicText('');
@@ -234,15 +246,21 @@ export const PracticePanel: React.FC<PracticePanelProps> = ({
         heat: { ...prev.heat, [todayString]: todayHeat }
       };
 
-      // record question vignette fingerprint to history to avoid repeats
-      try {
-        if (prev.rememberQuestionHistory && currentQuestion) {
-          const key = btoa(currentQuestion.vignette.substring(0, 32));
-          const existing = prev.questionHistory || [];
-          const nextHistory = [...existing, key].slice(-500); // keep last 500
-          (profilePayload as any).questionHistory = nextHistory;
-        }
-      } catch (e) { /* ignore */ }
+      if (prev.rememberQuestionHistory !== false && currentQuestion?.vignette) {
+        profilePayload.questionHistory = recordQuestionVignette(
+          prev.questionHistory,
+          currentQuestion.vignette
+        );
+      }
+
+      if (currentQuestion) {
+        const subject = getSubjectKey(currentQuestion);
+        profilePayload.subjectAccuracy = updateSubjectAccuracy(
+          prev.subjectAccuracy,
+          subject,
+          isCorrect
+        );
+      }
 
       // Backup local storage too
       localStorage.setItem(`bp_profile_${prev.email}`, JSON.stringify(profilePayload));
@@ -299,10 +317,19 @@ export const PracticePanel: React.FC<PracticePanelProps> = ({
     }
   };
 
-  const isFreePlan = profile.tier === 'Free';
+  const dailyLimit = getDailyQuestionLimit(profile.tier);
+  const questionsUsedToday = getQuestionsUsedToday(profile);
+  const atDailyLimit = dailyLimit !== null && questionsUsedToday >= dailyLimit;
+  const isLimitedPlan = isLimitedTier(profile.tier);
 
   return (
     <div className="space-y-6">
+      {isLimitedPlan && dailyLimit !== null && (
+        <div className={`rounded-2xl border px-4 py-3 text-xs font-semibold ${atDailyLimit ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+          {profile.tier} plan: {questionsUsedToday} / {dailyLimit} AI questions used today
+          {atDailyLimit ? ' — limit reached. Visit Billing to upgrade.' : ''}
+        </div>
+      )}
       {/* Configuration Tray */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
         <h4 className="font-heading font-black text-pine text-xs uppercase tracking-widest flex items-center gap-2">

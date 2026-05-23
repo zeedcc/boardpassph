@@ -1,0 +1,26 @@
+{
+  "name": "BoardPassPH — PRC Board Review",
+  "short_name": "BoardPassPH",
+  "description": "AI-powered Philippine psychology board exam review with practice, mock exams, and study tools.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#071517",
+  "theme_color": "#14b8a6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "prefer_related_applications": false
+}

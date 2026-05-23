@@ -488,7 +488,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ profile, setProfile }) =
                   </h4>
                   <p className="text-[10px] text-gray-400 leading-relaxed">Set the subscription tier directly — useful for manual GCash confirmations.</p>
                   <div className="space-y-2">
-                    {(['Clinical Trial', 'Pro', 'Clinical'] as const).map(tier => (
+                    {(['Free', 'Clinical Trial', 'Pro', 'Clinical'] as const).map(tier => (
                       <button key={tier} onClick={() => setEditTier(tier)}
                         className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${editTier === tier
                           ? tier === 'Pro'      ? 'bg-amber-500 text-white border-amber-500'

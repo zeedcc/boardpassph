@@ -392,19 +392,39 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ profile, setProfile 
 
 const HabitsEditor: React.FC<{ profile: UserProfile; setProfile: React.Dispatch<React.SetStateAction<UserProfile>> }> = ({ profile, setProfile }) => {
   const [newHabit, setNewHabit] = useState('');
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState('');
   const habits = profile.habits || [];
+
+  const persist = (updated: string[]) => {
+    setProfile(p => {
+      const next = { ...p, habits: updated } as UserProfile;
+      localStorage.setItem(`bp_profile_${p.email}`, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const addHabit = () => {
     const v = newHabit.trim();
     if (!v) return;
-    const updated = [...habits, v];
-    setProfile(p => ({ ...p, habits: updated } as UserProfile));
+    persist([...habits, v]);
     setNewHabit('');
   };
 
   const removeHabit = (idx: number) => {
-    const updated = habits.filter((_, i) => i !== idx);
-    setProfile(p => ({ ...p, habits: updated } as UserProfile));
+    persist(habits.filter((_, i) => i !== idx));
+  };
+
+  const startEdit = (idx: number) => {
+    setEditingIdx(idx);
+    setEditValue(habits[idx]);
+  };
+
+  const saveEdit = () => {
+    if (editingIdx === null || !editValue.trim()) return;
+    const updated = habits.map((h, i) => (i === editingIdx ? editValue.trim() : h));
+    persist(updated);
+    setEditingIdx(null);
   };
 
   return (
@@ -416,9 +436,20 @@ const HabitsEditor: React.FC<{ profile: UserProfile; setProfile: React.Dispatch<
       <div className="mt-2 space-y-2">
         {habits.length === 0 && <div className="text-sm text-gray-400">No habits yet.</div>}
         {habits.map((h, i) => (
-          <div key={i} className="flex items-center justify-between bg-foam/40 border border-sage/10 rounded-xl px-3 py-2">
-            <div className="text-sm">{h}</div>
-            <button onClick={() => removeHabit(i)} className="text-xs text-rose-600">Delete</button>
+          <div key={i} className="flex items-center justify-between gap-2 bg-foam/40 border border-sage/10 rounded-xl px-3 py-2">
+            {editingIdx === i ? (
+              <>
+                <input value={editValue} onChange={e => setEditValue(e.target.value)} className="flex-1 text-sm border rounded-lg px-2 py-1" />
+                <button onClick={saveEdit} className="text-xs text-emerald-700 font-bold">Save</button>
+                <button onClick={() => setEditingIdx(null)} className="text-xs text-gray-500">Cancel</button>
+              </>
+            ) : (
+              <>
+                <div className="text-sm flex-1">{h}</div>
+                <button onClick={() => startEdit(i)} className="text-xs text-pine font-bold">Edit</button>
+                <button onClick={() => removeHabit(i)} className="text-xs text-rose-600">Delete</button>
+              </>
+            )}
           </div>
         ))}
       </div>

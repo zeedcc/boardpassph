@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { UserProfile, Question } from './types';
+import { getPreviousQuestionsForAi } from './utils/profileHelpers';
 import { Header } from './components/Header';
 import { RpgBar } from './components/RpgBar';
 import { StudentHubCard } from './components/StudentHubCard';
@@ -175,7 +176,9 @@ export default function App() {
         theme: theme,
         password: passwordInput,
         passwordHint: passwordHintInput.trim() || 'No password hint was set.',
-        signUpDate: todayStr
+        signUpDate: todayStr,
+        rememberQuestionHistory: true,
+        autoSubjectAccuracy: true,
       };
 
       try {
@@ -298,28 +301,26 @@ export default function App() {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const apiBase = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '';
     try {
-      const res = await fetch('/api/send-recovery-email', {
+      const res = await fetch(`${apiBase}/api/send-recovery-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipient_email: emailLower, otp }),
       });
-      const payload = await res.json();
+      const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(payload.error || 'Unable to send recovery email');
+        throw new Error(payload.error || 'Unable to send recovery email. Ensure the API server is running with MY_EMAIL and MY_PASSWORD set.');
       }
-      alert('Recovery email sent. Check your inbox for the OTP.');
+      alert('Recovery email sent. Check your inbox (and spam) for the OTP.');
       setRecoveredProfile(loadedProfile);
       setRecoveryOtp(otp);
       setEnteredRecoveryOtp('');
       setRecoveryStep('reset');
     } catch (err) {
       console.error('Recovery email failed', err);
-      alert(`Email delivery is not available right now. Use this OTP to continue: ${otp}`);
-      setRecoveredProfile(loadedProfile);
-      setRecoveryOtp(otp);
-      setEnteredRecoveryOtp('');
-      setRecoveryStep('reset');
+      const hint = err instanceof Error ? err.message : 'Email delivery failed';
+      alert(`${hint}\n\nFor local dev: run the API server (port 8080) and set MY_EMAIL + MY_PASSWORD (Gmail App Password).`);
     }
   };
 
@@ -395,7 +396,7 @@ export default function App() {
         } catch (e) { /* ignore */ }
       }
 
-      const previousQuestions = profile.rememberQuestionHistory ? (profile.questionHistory || []) : [];
+      const previousQuestions = getPreviousQuestionsForAi(profile);
       const res = await fetch("/api/generate-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

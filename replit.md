@@ -10,6 +10,16 @@ AI-powered Philippine psychology board exam review platform for PRC Psychometric
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-server run build` — rebuild api-server bundle
 - Required env: `GEMINI_API_KEY` — Google Generative AI key for question/mnemonic generation
+- Password recovery: `MY_EMAIL` + `MY_PASSWORD` (Gmail App Password) on the API server
+- Push notifications (optional): `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` on the API server
+
+## PWA install & notifications
+
+1. **Installable PWA**: `public/manifest.webmanifest` + `index.html` manifest link. Serve over HTTPS. Users install via browser “Add to Home Screen”.
+2. **Service worker**: `public/sw.js` — shell cache + push handler. Registered from Profile → “Allow push notifications”.
+3. **Push setup**: Run API server with stable VAPID keys. User enables notifications in Profile; app calls `/api/push/subscribe`.
+4. **Allowed hosts (dev)**: Vite `server.allowedHosts: true` accepts tunnel/custom domains. For production, set your domain in hosting (Replit, Vercel, etc.).
+5. **API proxy (local dev)**: Vite proxies `/api` → `http://127.0.0.1:8080`. Start both `api-server` and `boardpassph` dev servers.
 
 ## Stack
 
@@ -60,7 +70,7 @@ AI-powered Philippine psychology board exam review platform for PRC Psychometric
 - New users get 1,000 starter coins on sign-up
 - Profile ID card: editable username, school, photo (base64), password
 - Correct answer shuffle: server-side after Gemini response + fallback seeds
-- PayMongo integration: `PAYMONGO_SECRET_KEY` env var required; also optional `PAYMONGO_WEBHOOK_SECRET`
+- Billing: plans activate locally (no payment gateway in this build)
 
 ## Gotchas
 

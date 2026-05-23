@@ -1,9 +1,17 @@
-
 packages:
   - artifacts/*
   - lib/*
   - lib/integrations/*
   - scripts
+
+allowBuilds:
+  '@firebase/util': true
+  '@google/genai': true
+  '@tailwindcss/oxide': true
+  lightningcss: true
+  esbuild: true
+  protobufjs: true
+  rollup: true
 
 autoInstallPeers: false
 

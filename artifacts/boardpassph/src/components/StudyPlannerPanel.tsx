@@ -15,20 +15,12 @@ import {
   Clock
 } from 'lucide-react';
 import { UserProfile } from '../types';
+import { DEFAULT_HABIT_DEFINITIONS, getHabitDefinitions, type HabitDefinition } from '../utils/profileHelpers';
 
 interface StudyPlannerPanelProps {
   profile: UserProfile;
   setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
 }
-
-const HABIT_DEFINITIONS = [
-  { id: 'read-notes', name: '📖 Read 15 textbook pages / Diagnostic Codes', xp: 15 },
-  { id: 'quiz-session', name: '🧠 Complete Practice Arena quiz', xp: 20 },
-  { id: 'spaced-rep', name: '⚔️ Review Spaced Rep missed items', xp: 15 },
-  { id: 'hydrate', name: '💧 Hydrate (8+ glasses of water)', xp: 10 },
-  { id: 'sleep', name: '💤 Maintain 7+ hours of restful sleep', xp: 10 },
-  { id: 'stretch', name: '🧘 Exercise / Deep breathing stretch', xp: 10 },
-];
 
 const MOODS = [
   { id: 'motivated', name: 'Motivated', emoji: '🎯', color: 'bg-amber-500 text-white', accent: 'border-amber-200 bg-amber-50/50' },
@@ -49,6 +41,14 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventNote, setNewEventNote] = useState('');
   const [newEventColor, setNewEventColor] = useState('pine');
+  const [newHabitName, setNewHabitName] = useState('');
+  const [newHabitXp, setNewHabitXp] = useState(10);
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [editHabitName, setEditHabitName] = useState('');
+  const [editHabitXp, setEditHabitXp] = useState(10);
+  const [showHabitManager, setShowHabitManager] = useState(false);
+
+  const habitDefinitions = useMemo(() => getHabitDefinitions(profile), [profile.habitDefinitions]);
 
   // Load or pre-populate events
   const initializedEvents = useMemo(() => {
@@ -196,7 +196,7 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
       if (!wasChecked) {
         // Just checked it off
         const totalCompletedToday = Object.values(updatedHabits[selectedDateStr]).filter(Boolean).length;
-        if (totalCompletedToday === HABIT_DEFINITIONS.length) {
+        if (totalCompletedToday === habitDefinitions.length) {
           // Surpassed full checklist today! Honor streak
           newStreak += 1;
         }
@@ -304,6 +304,49 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
 
   // Check today completion metrics
   const habitsCompletedCount = Object.values(dailyHabits).filter(Boolean).length;
+
+  const persistHabitDefinitions = (defs: HabitDefinition[]) => {
+    setProfile(prev => {
+      const next = { ...prev, habitDefinitions: defs };
+      localStorage.setItem(`bp_profile_${prev.email}`, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleAddHabit = () => {
+    const name = newHabitName.trim();
+    if (!name) return;
+    const id = `habit-${Date.now().toString(36)}`;
+    persistHabitDefinitions([...habitDefinitions, { id, name, xp: newHabitXp }]);
+    setNewHabitName('');
+    setNewHabitXp(10);
+  };
+
+  const handleDeleteHabit = (id: string) => {
+    if (!confirm('Remove this habit from your checklist?')) return;
+    persistHabitDefinitions(habitDefinitions.filter(h => h.id !== id));
+  };
+
+  const handleStartEditHabit = (habit: HabitDefinition) => {
+    setEditingHabitId(habit.id);
+    setEditHabitName(habit.name);
+    setEditHabitXp(habit.xp);
+  };
+
+  const handleSaveEditHabit = () => {
+    if (!editingHabitId || !editHabitName.trim()) return;
+    persistHabitDefinitions(
+      habitDefinitions.map(h =>
+        h.id === editingHabitId ? { ...h, name: editHabitName.trim(), xp: editHabitXp } : h
+      )
+    );
+    setEditingHabitId(null);
+  };
+
+  const handleResetHabits = () => {
+    if (!confirm('Restore the default habit checklist?')) return;
+    persistHabitDefinitions([...DEFAULT_HABIT_DEFINITIONS]);
+  };
   const currentSelectedMoodObj = MOODS.find(m => m.id === dailyMood);
 
   return (
@@ -443,7 +486,7 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
                       {/* Habits small meter */}
                       {completedHabits > 0 && (
                         <div className="flex gap-0.5 h-1 items-center bg-gray-100 rounded-full overflow-hidden w-full">
-                          {Array.from({ length: HABIT_DEFINITIONS.length }).map((_, hIdx) => (
+                          {Array.from({ length: habitDefinitions.length }).map((_, hIdx) => (
                             <div 
                               key={hIdx}
                               className={`h-full flex-1 rounded-full ${
@@ -543,12 +586,64 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
                   Habit Checklist
                 </label>
                 <span className="text-[9px] font-mono font-bold bg-foam px-2 py-0.5 rounded-full text-pine-mid">
-                  {habitsCompletedCount} / {HABIT_DEFINITIONS.length} done
+                  {habitsCompletedCount} / {habitDefinitions.length} done
                 </span>
               </div>
 
+              <div className="mb-2">
+                <button
+                  type="button"
+                  onClick={() => setShowHabitManager(v => !v)}
+                  className="text-[9px] font-black uppercase tracking-wider text-pine hover:underline"
+                >
+                  {showHabitManager ? 'Hide habit editor' : 'Add / edit / delete habits'}
+                </button>
+              </div>
+
+              {showHabitManager && (
+                <div className="mb-3 p-3 rounded-xl border border-pine/10 bg-foam/30 space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      value={newHabitName}
+                      onChange={e => setNewHabitName(e.target.value)}
+                      placeholder="New habit label"
+                      className="flex-1 text-[10px] border rounded-lg px-2 py-1.5"
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={newHabitXp}
+                      onChange={e => setNewHabitXp(Number(e.target.value))}
+                      className="w-14 text-[10px] border rounded-lg px-2 py-1.5"
+                      title="XP reward"
+                    />
+                    <button type="button" onClick={handleAddHabit} className="px-2 py-1.5 bg-pine text-cream text-[9px] font-bold rounded-lg">Add</button>
+                  </div>
+                  {habitDefinitions.map(habit => (
+                    <div key={habit.id} className="flex items-center gap-2 text-[10px]">
+                      {editingHabitId === habit.id ? (
+                        <>
+                          <input value={editHabitName} onChange={e => setEditHabitName(e.target.value)} className="flex-1 border rounded px-2 py-1" />
+                          <input type="number" value={editHabitXp} onChange={e => setEditHabitXp(Number(e.target.value))} className="w-12 border rounded px-1 py-1" />
+                          <button type="button" onClick={handleSaveEditHabit} className="text-emerald-700 font-bold">Save</button>
+                          <button type="button" onClick={() => setEditingHabitId(null)} className="text-gray-500">Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex-1 truncate">{habit.name} (+{habit.xp}xp)</span>
+                          <button type="button" onClick={() => handleStartEditHabit(habit)} className="text-pine font-bold">Edit</button>
+                          <button type="button" onClick={() => handleDeleteHabit(habit.id)} className="text-rose-600"><Trash2 className="w-3 h-3" /></button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={handleResetHabits} className="text-[9px] text-gray-500 underline">Reset to defaults</button>
+                </div>
+              )}
+
               <div className="space-y-1.5">
-                {HABIT_DEFINITIONS.map(habit => {
+                {habitDefinitions.map(habit => {
                   const isChecked = !!dailyHabits[habit.id];
                   
                   return (

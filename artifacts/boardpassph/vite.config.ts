@@ -7,7 +7,8 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rawPort = process.env.PORT || "4173";
+// Use BOARDPASSPH_PORT for the frontend; keep PORT for the API server (8080 on Replit).
+const rawPort = process.env.BOARDPASSPH_PORT || "4173";
 const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
@@ -55,6 +56,12 @@ export default defineConfig({
     allowedHosts: true,
     fs: {
       strict: true,
+    },
+    proxy: {
+      "/api": {
+        target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
     },
   },
   preview: {
