@@ -41,6 +41,7 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventNote, setNewEventNote] = useState('');
   const [newEventColor, setNewEventColor] = useState('pine');
+  const [newEventTime, setNewEventTime] = useState('');
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitXp, setNewHabitXp] = useState(10);
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
@@ -246,7 +247,8 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
       id: 'evt-' + Date.now().toString(36),
       title: newEventTitle.trim(),
       note: newEventNote.trim() || undefined,
-      color: newEventColor
+      color: newEventColor,
+      time: newEventTime || undefined,
     };
 
     const currentDayEvents = initializedEvents[selectedDateStr] || [];
@@ -267,6 +269,7 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
 
     setNewEventTitle('');
     setNewEventNote('');
+    setNewEventTime('');
   };
 
   // Delete Calendar Event
@@ -703,9 +706,17 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
                         className={`p-2.5 rounded-xl border border-gray-150/70 flex justify-between items-start gap-2 text-left relative ${borderClass}`}
                       >
                         <div className="space-y-1 min-w-0">
-                          <h5 className="text-[11px] font-extrabold text-gray-800 uppercase leading-none truncate">
-                            {evt.title}
-                          </h5>
+                          <div className="flex items-center gap-1.5">
+                            <h5 className="text-[11px] font-extrabold text-gray-800 uppercase leading-none truncate">
+                              {evt.title}
+                            </h5>
+                            {evt.time && (
+                              <span className="text-[8px] font-mono font-bold text-pine bg-foam px-1.5 py-0.5 rounded-full border border-pine/10 whitespace-nowrap">
+                                <Clock className="w-2.5 h-2.5 inline mr-0.5 text-pine/60" />
+                                {evt.time}
+                              </span>
+                            )}
+                          </div>
                           {evt.note && (
                             <p className="text-[10px] text-gray-500 leading-normal font-mono select-text">
                               {evt.note}
@@ -748,6 +759,16 @@ export const StudyPlannerPanel: React.FC<StudyPlannerPanelProps> = ({ profile, s
                     onChange={e => setNewEventNote(e.target.value)}
                     className="w-full text-[10.5px] px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-pine/30 placeholder:text-gray-400 font-mono"
                   />
+                </div>
+
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="time"
+                    value={newEventTime}
+                    onChange={e => setNewEventTime(e.target.value)}
+                    className="text-[11px] px-2 py-1 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-pine/30"
+                  />
+                  <span className="text-[9px] text-gray-400 font-mono">Reminder time</span>
                 </div>
 
                 <div className="flex gap-2 items-center justify-between">

@@ -24,6 +24,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { usePushNotifications } from './hooks/usePushNotifications';
+import { useStudyReminders } from './hooks/useStudyReminders';
 import { UserProfile, Question } from './types';
 import { getPreviousQuestionsForAi } from './utils/profileHelpers';
 import { Header } from './components/Header';
@@ -93,6 +94,9 @@ export default function App() {
   // Push notifications
   const { permission, subscribed, requesting, subscribe, dismissBanner, isBannerDismissed } = usePushNotifications();
   const [pushDismissed, setPushDismissed] = useState(() => isBannerDismissed);
+
+  // Study reminders (client-side alarm clock for calendar events)
+  useStudyReminders(profile);
 
   useEffect(() => {
     if (!profile) return;

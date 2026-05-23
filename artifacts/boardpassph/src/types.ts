@@ -64,7 +64,7 @@ export interface UserProfile {
   signUpDate?: string;
   moods?: Record<string, string>;
   habitsChecked?: Record<string, Record<string, boolean>>;
-  calendarEvents?: Record<string, { id: string; title: string; note?: string; color: string }[]>;
+  calendarEvents?: Record<string, { id: string; title: string; note?: string; color: string; time?: string }[]>;
   dailyChallenges?: Record<string, 'correct' | 'incorrect'>;
   // New settings
   allowPushNotifications?: boolean;
