@@ -3,9 +3,15 @@ import { Award, CheckCircle, Zap, ExternalLink, Loader2, RefreshCw, Info, Shield
 import { UserProfile } from '../types';
 import { PlanInfographic } from './PlanInfographic';
 
+interface PendingLink {
+  link_id: string;
+  plan: 'pro' | 'clinical';
+  planName: string;
+}
+
 interface BillingPanelProps {
   profile: UserProfile;
-  setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+  setProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
 
 const PLANS = [
@@ -68,6 +74,7 @@ export const BillingPanel: React.FC<BillingPanelProps> = ({ profile, setProfile 
   const [verifying, setVerifying] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState('');
   const [error, setError] = useState('');
+  const [pendingLink, setPendingLink] = useState<PendingLink | null>(null);
 
   const currentTier = profile.tier || 'Clinical Trial';
   const isActive = (planId: string) => {
@@ -86,6 +93,7 @@ export const BillingPanel: React.FC<BillingPanelProps> = ({ profile, setProfile 
       const planName = PLANS.find(p => p.id === planId)?.name ?? planId;
       const newTier = planId === 'pro' ? 'Pro' : 'Clinical';
       setProfile(prev => {
+        if (!prev) return prev;
         const updated = { ...prev, tier: newTier as UserProfile['tier'] };
         localStorage.setItem(`bp_profile_${prev.email}`, JSON.stringify(updated));
         return updated;
@@ -114,6 +122,7 @@ export const BillingPanel: React.FC<BillingPanelProps> = ({ profile, setProfile 
       if (data.paid) {
         const newTier = pendingLink.plan === 'pro' ? 'Pro' : 'Clinical';
         setProfile(prev => {
+          if (!prev) return prev;
           const updated = { ...prev, tier: newTier as UserProfile['tier'] };
           localStorage.setItem(`bp_profile_${prev.email}`, JSON.stringify(updated));
           return updated;

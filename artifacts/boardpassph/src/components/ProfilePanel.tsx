@@ -4,7 +4,7 @@ import { UserProfile } from '../types';
 
 interface ProfilePanelProps {
   profile: UserProfile;
-  setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+  setProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
 
 function getLevelFromXp(xp: number): number {
@@ -77,6 +77,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ profile, setProfile 
     }
 
     setProfile(prev => {
+      if (!prev) return prev;
       const updated: UserProfile = {
         ...prev,
         username: draftUsername.trim() || undefined,

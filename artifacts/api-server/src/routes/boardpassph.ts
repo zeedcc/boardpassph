@@ -19,7 +19,7 @@ if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     VAPID_PUBLIC = keys.publicKey;
     VAPID_PRIVATE = keys.privateKey;
     console.log('Generated ephemeral VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in production.');
-  } catch (e) {
+  } catch (e: unknown) {
     console.warn('Could not generate VAPID keys:', e);
   }
 }
@@ -48,7 +48,7 @@ router.post('/push/send', async (req, res) => {
     // broadcast
     const promises: Promise<any>[] = [];
     for (const sub of subscriptionsByEmail.values()) {
-      promises.push(webpush.sendNotification(sub, JSON.stringify({ title, body, data })).catch(e => e));
+      promises.push(webpush.sendNotification(sub, JSON.stringify({ title, body, data })).catch((e: unknown) => e));
     }
     await Promise.all(promises);
     return res.json({ sent: true, count: subscriptionsByEmail.size });
