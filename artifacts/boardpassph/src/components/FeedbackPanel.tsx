@@ -207,10 +207,6 @@ export const FeedbackPanel: React.FC<FeedbackPanelProps> = ({ profile }) => {
                   <CheckCircle2 className="w-3.5 h-3.5 text-sage flex-shrink-0 mt-0.5" />
                   <span>Verified 24-hour turnaround response time.</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-sage flex-shrink-0 mt-0.5" />
-                  <span>Responsive alignment with professional curriculum.</span>
-                </li>
               </ul>
             </div>
 
