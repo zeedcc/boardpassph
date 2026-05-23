@@ -315,7 +315,11 @@ export default function App() {
       setRecoveryStep('reset');
     } catch (err) {
       console.error('Recovery email failed', err);
-      alert('Unable to send recovery email at this time. Please try again later.');
+      alert(`Email delivery is not available right now. Use this OTP to continue: ${otp}`);
+      setRecoveredProfile(loadedProfile);
+      setRecoveryOtp(otp);
+      setEnteredRecoveryOtp('');
+      setRecoveryStep('reset');
     }
   };
 
