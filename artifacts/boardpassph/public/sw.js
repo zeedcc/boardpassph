@@ -5,8 +5,8 @@ self.addEventListener('push', function(event) {
   const options = {
     body: payload.body || '',
     data: payload.data || {},
-    badge: '/favicon.ico',
-    icon: '/favicon.ico'
+    badge: '/icon-192.png',
+    icon: '/icon-192.png'
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });

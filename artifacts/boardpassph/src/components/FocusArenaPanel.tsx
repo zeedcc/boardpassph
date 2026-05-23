@@ -635,21 +635,34 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
     }
   };
 
-  // Blur event listener to detect when user moves to non-allowlisted background tasks
+  const BREACH_XP_PENALTY = 15;
+
+  // Visibility + blur listener to detect when user moves away during Focus Lock
   useEffect(() => {
     if (!studyLockOn) return;
 
+    let lastBreachTime = 0;
+
     const handleFocusLoss = () => {
-      setFocusBreachCount(prev => {
-        const next = prev + 1;
-        playBeepTone(150, 0.5, 'square');
-        return next;
-      });
+      const now = Date.now();
+      if (now - lastBreachTime < 1200) return; // debounce: ignore duplicate events within 1.2s
+      lastBreachTime = now;
+
+      playBeepTone(150, 0.5, 'square');
+      setFocusBreachCount(prev => prev + 1);
+      setProfile(p => p ? { ...p, totalXp: Math.max(0, p.totalXp - BREACH_XP_PENALTY) } : null);
+      showToast(`⚠️ Focus Breach! You left the review workspace. -${BREACH_XP_PENALTY} Board XP deducted.`);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) handleFocusLoss();
     };
 
     window.addEventListener('blur', handleFocusLoss);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       window.removeEventListener('blur', handleFocusLoss);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [studyLockOn]);
 
@@ -670,7 +683,8 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
       setProfile(p => p ? { ...p, totalXp: p.totalXp + bonus } : null);
       showToast(`🏆 Flawless Focus Shield! 0 breaches detected. Claimed +${bonus} Focus Board XP.`);
     } else {
-      showToast(`🔒 Focus session closed. Detected ${focusBreachCount} off-board workspace breaches.`);
+      const totalPenalty = focusBreachCount * BREACH_XP_PENALTY;
+      showToast(`🔒 Focus session closed. ${focusBreachCount} breach${focusBreachCount !== 1 ? 'es' : ''} — ${totalPenalty} XP was already deducted live.`);
     }
   };
 

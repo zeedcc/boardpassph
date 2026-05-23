@@ -20,8 +20,10 @@ import {
   User,
   Users,
   Menu,
-  X
+  X,
+  Bell,
 } from 'lucide-react';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import { UserProfile, Question } from './types';
 import { getPreviousQuestionsForAi } from './utils/profileHelpers';
 import { Header } from './components/Header';
@@ -87,6 +89,10 @@ export default function App() {
   }, [profile]);
 
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced'>('synced');
+
+  // Push notifications
+  const { permission, subscribed, requesting, subscribe, dismissBanner, isBannerDismissed } = usePushNotifications();
+  const [pushDismissed, setPushDismissed] = useState(() => isBannerDismissed);
 
   useEffect(() => {
     if (!profile) return;
@@ -840,6 +846,41 @@ export default function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Push notification prompt banner */}
+      {!pushDismissed && permission === 'default' && !subscribed && (
+        <div className="bg-pine border-b border-mint/20 px-4 py-2.5 flex items-center gap-3">
+          <Bell className="w-4 h-4 text-mint shrink-0" />
+          <span className="flex-1 text-xs text-cream/80 font-medium">
+            Enable notifications for study reminders &amp; score alerts
+          </span>
+          <button
+            onClick={() => subscribe(profile.email)}
+            disabled={requesting}
+            className="px-3 py-1 bg-mint text-pine font-black rounded-lg text-[10px] uppercase tracking-wider cursor-pointer disabled:opacity-60 shrink-0 transition hover:brightness-110"
+          >
+            {requesting ? '…' : 'Enable'}
+          </button>
+          <button
+            onClick={() => { setPushDismissed(true); dismissBanner(); }}
+            className="p-1 text-cream/30 hover:text-cream/70 cursor-pointer shrink-0 transition"
+            aria-label="Dismiss"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Push granted confirmation (shows briefly after enabling) */}
+      {subscribed && permission === 'granted' && !pushDismissed && (
+        <div className="bg-mint/10 border-b border-mint/20 px-4 py-2 flex items-center gap-2">
+          <Bell className="w-3.5 h-3.5 text-mint shrink-0" />
+          <span className="flex-1 text-[11px] text-pine/70 font-medium">Notifications enabled ✓</span>
+          <button onClick={() => setPushDismissed(true)} className="p-1 text-pine/30 hover:text-pine/60 cursor-pointer">
+            <X className="w-3 h-3" />
+          </button>
         </div>
       )}
 
