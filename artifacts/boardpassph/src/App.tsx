@@ -18,7 +18,6 @@ import {
   Calculator,
   Megaphone,
   User,
-  Users,
   Menu,
   X,
   Bell,
@@ -44,7 +43,6 @@ import { FocusArenaPanel } from './components/FocusArenaPanel';
 import { WeightedCalculatorPanel } from './components/WeightedCalculatorPanel';
 import { AnnouncementsPanel } from './components/AnnouncementsPanel';
 import { ProfilePanel } from './components/ProfilePanel';
-import { GroupStudyPanel } from './components/GroupStudyPanel';
 import { getRandomLocalQuestion } from './utils/questionGenerator';
 import { db, firestoreWithTimeout } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -81,13 +79,6 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('bp_theme', theme);
   }, [theme]);
-
-  useEffect(() => {
-    if (!profile) return;
-    if (window.location.hash.includes('group-study=')) {
-      setActiveTab('focusArenaTab');
-    }
-  }, [profile]);
 
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced'>('synced');
 
@@ -694,7 +685,6 @@ export default function App() {
     { id: 'leaderboardTab', label: 'Leaderboard', icon: Trophy },
     { id: 'focusArenaTab', label: 'Focus Arena', icon: Zap },
     { id: 'calculatorTab', label: 'GWA Calculator', icon: Calculator },
-    { id: 'groupStudyTab', label: 'Group Study', icon: Users },
     { id: 'announcementsTab', label: 'Announcements', icon: Megaphone },
     { id: 'feedbackTab', label: 'Feedback', icon: MessageSquare },
     { id: 'billingTab', label: 'Plans', icon: CreditCard },
@@ -964,10 +954,6 @@ export default function App() {
 
             {activeTab === 'calculatorTab' && (
               <WeightedCalculatorPanel />
-            )}
-
-            {activeTab === 'groupStudyTab' && (
-              <GroupStudyPanel profile={profile} />
             )}
 
             {activeTab === 'feedbackTab' && (

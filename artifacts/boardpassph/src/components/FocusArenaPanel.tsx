@@ -1,22 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Flame, Gamepad2, Timer, Lock, Volume2, VolumeX, ShieldAlert, 
-  HelpCircle, Trophy, Users, Award, Zap, Compass, CheckCircle2, 
+  HelpCircle, Trophy, Award, Zap, Compass, CheckCircle2, 
   AlertTriangle, Copy, Mail, PlusCircle, Bookmark, Compass as CompassIcon,
   Sparkles, Check, ChevronRight, Play, Square, RotateCcw, Share2, 
   UserPlus, Star, Target, Brain, TrendingUp, Shield, Search
 } from 'lucide-react';
 import { UserProfile, Question } from '../types';
 import { db, firestoreWithTimeout } from '../firebase';
-import {
-  doc as firestoreDoc,
-  setDoc,
-  getDoc,
-  onSnapshot,
-  updateDoc,
-  arrayUnion,
-  serverTimestamp
-} from 'firebase/firestore';
+import { doc as firestoreDoc, getDoc } from 'firebase/firestore';
 
 interface FocusArenaPanelProps {
   profile: UserProfile;
@@ -772,207 +764,7 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
     showToast(nextVal ? "🧠 Adaptive Board Matrix IQ Auto-scaling enabled!" : "🔒 Fixed study difficulty mode configured.");
   };
 
-  // --- FEATURE 6: GROUP STUDY (live Firestore sync) ---
-  const [groupRoomName, setGroupRoomName] = useState('');
-  const [groupRoomId, setGroupRoomId] = useState<string | null>(null);
-  const [groupRoomLink, setGroupRoomLink] = useState<string | null>(null);
-  const [groupParticipants, setGroupParticipants] = useState<string[]>([]);
-  const [groupRoomLive, setGroupRoomLive] = useState(false);
-  const groupRoomUnsubRef = useRef<(() => void) | null>(null);
-  const localRoomPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const generateRoomId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
-  const applyRoomSnapshot = (room: { name?: string; participants?: string[] } | undefined) => {
-    if (!room) return;
-    setGroupParticipants(room.participants || []);
-    if (room.name) setGroupRoomName(room.name);
-  };
-
-  const subscribeToGroupRoom = (id: string, useLocal: boolean) => {
-    if (groupRoomUnsubRef.current) {
-      groupRoomUnsubRef.current();
-      groupRoomUnsubRef.current = null;
-    }
-    if (localRoomPollRef.current) {
-      clearInterval(localRoomPollRef.current);
-      localRoomPollRef.current = null;
-    }
-
-    if (useLocal) {
-      setGroupRoomLive(false);
-      const readLocal = () => {
-        try {
-          const localRooms = JSON.parse(localStorage.getItem('bp_local_studyRooms') || '{}');
-          applyRoomSnapshot(localRooms[id]);
-        } catch { /* ignore */ }
-      };
-      readLocal();
-      const onStorage = (ev: StorageEvent) => {
-        if (ev.key === 'bp_local_studyRooms') readLocal();
-      };
-      window.addEventListener('storage', onStorage);
-      localRoomPollRef.current = setInterval(readLocal, 2000);
-      groupRoomUnsubRef.current = () => {
-        window.removeEventListener('storage', onStorage);
-        if (localRoomPollRef.current) clearInterval(localRoomPollRef.current);
-      };
-      return;
-    }
-
-    const roomRef = firestoreDoc(db, 'studyRooms', id);
-    groupRoomUnsubRef.current = onSnapshot(
-      roomRef,
-      (snap) => {
-        if (snap.exists()) {
-          setGroupRoomLive(true);
-          applyRoomSnapshot(snap.data() as { name?: string; participants?: string[] });
-        }
-      },
-      () => setGroupRoomLive(false)
-    );
-  };
-
-  const handleCreateGroupRoom = async (e?: React.FormEvent) => {
-    e?.preventDefault?.();
-    if (!groupRoomName.trim()) {
-      alert('Please provide a name for the study space.');
-      return;
-    }
-
-    const id = generateRoomId();
-    const link = `${window.location.origin}${window.location.pathname}#group-study=${id}`;
-
-    try {
-      const roomRef = firestoreDoc(db, 'studyRooms', id);
-      await firestoreWithTimeout(setDoc(roomRef, {
-        id,
-        name: groupRoomName.trim(),
-        host: profile.email,
-        participants: [profile.email],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }));
-
-      setGroupRoomId(id);
-      setGroupRoomLink(link);
-      window.location.hash = `group-study=${id}`;
-      subscribeToGroupRoom(id, false);
-      playBeepTone(700, 0.18, 'sine');
-      showToast(`Study space "${groupRoomName}" created — share the link with classmates.`);
-    } catch (err) {
-      console.error('Failed to create room', err);
-      try {
-        const localRooms = JSON.parse(localStorage.getItem('bp_local_studyRooms') || '{}');
-        localRooms[id] = {
-          id,
-          name: groupRoomName.trim(),
-          host: profile.email,
-          participants: [profile.email],
-          createdAt: Date.now(),
-        };
-        localStorage.setItem('bp_local_studyRooms', JSON.stringify(localRooms));
-        setGroupRoomId(id);
-        setGroupRoomLink(link);
-        window.location.hash = `group-study=${id}`;
-        setGroupParticipants([profile.email]);
-        subscribeToGroupRoom(id, true);
-        playBeepTone(700, 0.18, 'sine');
-        showToast(`Study space created locally (same browser). For live multi-device sync, allow Firestore access.`);
-      } catch {
-        showToast('Unable to create study room. Please check your connection and try again.');
-      }
-    }
-  };
-
-  const handleCopyGroupLink = async () => {
-    if (!groupRoomLink) return;
-    try {
-      await navigator.clipboard.writeText(groupRoomLink);
-      showToast('Link copied to clipboard');
-    } catch (e) {
-      // fallback
-      prompt('Copy the study room link:', groupRoomLink);
-    }
-  };
-
-  // Auto-join room if URL hash contains group-study
-  useEffect(() => {
-    if (!profile?.email) return;
-    const hash = window.location.hash || '';
-    const m = hash.match(/group-study=([A-Za-z0-9\-]+)/);
-    if (!m) return;
-    const id = m[1];
-    if (groupRoomId === id && groupRoomUnsubRef.current) return;
-
-    const roomRef = firestoreDoc(db, 'studyRooms', id);
-    const link = `${window.location.origin}${window.location.pathname}#group-study=${id}`;
-
-    (async () => {
-      try {
-        const snap = await firestoreWithTimeout(getDoc(roomRef));
-        if (!snap.exists()) {
-          const localRooms = JSON.parse(localStorage.getItem('bp_local_studyRooms') || '{}');
-          if (localRooms[id]) {
-            const room = localRooms[id];
-            if (!room.participants.includes(profile.email)) {
-              room.participants.push(profile.email);
-              localRooms[id] = room;
-              localStorage.setItem('bp_local_studyRooms', JSON.stringify(localRooms));
-            }
-            setGroupRoomId(id);
-            setGroupRoomLink(link);
-            setGroupRoomName(room.name || '');
-            subscribeToGroupRoom(id, true);
-            showToast(`Joined local study space: ${room.name}`);
-            return;
-          }
-          showToast('Study room not found.');
-          return;
-        }
-
-        await firestoreWithTimeout(updateDoc(roomRef, {
-          participants: arrayUnion(profile.email),
-          updatedAt: serverTimestamp(),
-        }));
-        setGroupRoomId(id);
-        setGroupRoomLink(link);
-        setGroupRoomName(snap.data()?.name || '');
-        subscribeToGroupRoom(id, false);
-        playBeepTone(520, 0.12, 'sine');
-        showToast(`Joined study space: ${snap.data()?.name || id}`);
-      } catch (err) {
-        console.error('Failed to join room', err);
-        try {
-          const localRooms = JSON.parse(localStorage.getItem('bp_local_studyRooms') || '{}');
-          if (localRooms[id]) {
-            const room = localRooms[id];
-            if (!room.participants.includes(profile.email)) {
-              room.participants.push(profile.email);
-              localRooms[id] = room;
-              localStorage.setItem('bp_local_studyRooms', JSON.stringify(localRooms));
-            }
-            setGroupRoomId(id);
-            setGroupRoomLink(link);
-            setGroupRoomName(room.name || '');
-            subscribeToGroupRoom(id, true);
-            showToast(`Joined local study space: ${room.name}`);
-            return;
-          }
-        } catch { /* ignore */ }
-        showToast('Unable to join study room. Please verify the room link and try again.');
-      }
-    })();
-
-    return () => {
-      if (groupRoomUnsubRef.current) {
-        groupRoomUnsubRef.current();
-        groupRoomUnsubRef.current = null;
-      }
-    };
-  }, [profile?.email]);
-
-  // --- FEATURE 7: CLASSMATE STUDY REFERRAL SYSTEM ---
+  // --- FEATURE 6: CLASSMATE STUDY REFERRAL SYSTEM ---
   const [referralEmailInput, setReferralEmailInput] = useState('');
   const [invitedPeers, setInvitedPeers] = useState<string[]>(() => {
     const saved = localStorage.getItem(`bp_referred_${profile.email}`);
@@ -1118,16 +910,6 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
         >
           <Brain className="w-3.5 h-3.5" />
           <span>Adaptive Testing</span>
-        </button>
-
-        <button
-          onClick={() => { setActiveSubTab('peer'); playBeepTone(500, 0.1); }}
-          className={`px-3 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
-            activeSubTab === 'peer' ? 'bg-pine text-cream font-bold shadow' : 'text-pine hover:bg-gray-50'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>Group Study</span>
         </button>
 
         <button
@@ -1885,98 +1667,7 @@ export const FocusArenaPanel: React.FC<FocusArenaPanelProps> = ({ profile, setPr
           </div>
         )}
 
-        {/* TAB 6: GROUP STUDY */}
-        {activeSubTab === 'peer' && (
-          <div className="space-y-6">
-            <div className="space-y-5">
-              <div className="p-5 bg-gradient-to-r from-pine/10 to-transparent border border-pine/5 rounded-2xl space-y-2 select-none">
-                <h3 className="text-sm font-bold text-pine uppercase flex items-center gap-1.5 leading-none font-sans">
-                  <UserPlus className="w-4 h-4 text-emerald-600 animate-pulse" />
-                  <span>Live Group Study Room</span>
-                </h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Create a study space, share the link, and see classmates join in real time via Firestore sync.
-                </p>
-                {groupRoomId && (
-                  <span className={`inline-block text-[9px] font-mono font-bold px-2 py-0.5 rounded ${groupRoomLive ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {groupRoomLive ? '● Live sync active' : '○ Local / offline sync'}
-                  </span>
-                )}
-              </div>
-
-              <form onSubmit={handleCreateGroupRoom} className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-sage uppercase font-mono block">Study Space Name</label>
-                  <input
-                    type="text"
-                    value={groupRoomName}
-                    onChange={(e) => setGroupRoomName(e.target.value)}
-                    placeholder="E.g., Psych Boards Study Group A"
-                    className="w-full bg-foam/10 border border-pine/10 text-xs text-gray-800 outline-none p-3 rounded-xl focus:border-sage font-semibold"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <button
-                    type="submit"
-                    className="w-full flex items-center justify-center gap-1 py-3 bg-pine hover:bg-pine-mid text-cream text-xs font-bold uppercase tracking-wider rounded-xl transition shadow-md cursor-pointer select-none"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>Create Study Space &amp; Generate Link</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGroupRoomName('');
-                      setGroupRoomLink(null);
-                      setGroupRoomId(null);
-                      setGroupParticipants([]);
-                      window.location.hash = '';
-                      if (groupRoomUnsubRef.current) groupRoomUnsubRef.current();
-                      playBeepTone(300, 0.08);
-                    }}
-                    className="w-full py-3 border border-gray-100 hover:bg-gray-50 text-[10px] font-black uppercase tracking-wider rounded-xl transition cursor-pointer select-none"
-                  >
-                    Leave room
-                  </button>
-                </div>
-              </form>
-
-              {groupRoomLink && (
-                <div className="p-3 bg-foam/40 border border-pine/5 rounded-xl space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      <h5 className="text-[10px] font-bold text-gray-800">Shareable Link</h5>
-                      <p className="text-[9px] text-gray-600 mt-1 break-all">{groupRoomLink}</p>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <button onClick={handleCopyGroupLink} className="px-3 py-2 bg-foam/20 border border-pine/10 rounded-lg text-[10px] font-bold">Copy</button>
-                      <button
-                        onClick={() => { navigator.share ? navigator.share({ title: groupRoomName, url: groupRoomLink }) : handleCopyGroupLink(); }}
-                        className="px-3 py-2 bg-white border border-gray-100 rounded-lg text-[10px] font-bold"
-                      >
-                        Share
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <h5 className="text-[10px] font-bold text-gray-800 mb-1">Participants ({groupParticipants.length})</h5>
-                    <ul className="space-y-1 max-h-32 overflow-y-auto">
-                      {groupParticipants.map((p) => (
-                        <li key={p} className={`text-[10px] font-mono px-2 py-1 rounded ${p === profile.email ? 'bg-pine/10 text-pine font-bold' : 'text-gray-600'}`}>
-                          {p === profile.email ? `${p} (you)` : p}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 7: CLASSMATE STUDY REFERRAL SYSTEM */}
+        {/* TAB 6: CLASSMATE STUDY REFERRAL SYSTEM */}
         {activeSubTab === 'referrals' && (
           <div className="space-y-6">
             
