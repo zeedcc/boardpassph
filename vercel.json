@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm --filter @workspace/boardpassph run build",
+  "outputDirectory": "artifacts/boardpassph/dist/public",
+  "installCommand": "pnpm install"
+}

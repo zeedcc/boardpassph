@@ -34,6 +34,7 @@ export function usePushNotifications() {
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
+        // @ts-ignore - TypeScript is overly strict about ArrayBufferLike vs ArrayBuffer, but this works at runtime
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
 
