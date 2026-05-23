@@ -192,7 +192,6 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
 
   return (
     <div className="space-y-6">
-      
       {/* IMMERSIVE HEADER BANNER */}
       <div className="bg-gradient-to-br from-pine to-green-900 border border-green-800 rounded-3xl p-6 text-cream shadow-md relative overflow-hidden select-none">
         {/* Absolute Background Decors */}
@@ -222,7 +221,6 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
           </p>
         </div>
       </div>
-
       {/* QUICK VIEW DYNAMIC RANKINGS HUD CARD (YOUR PLACEMENT) */}
       {selfEntry && (
         <div className="p-4 bg-gradient-to-r from-mint/10 to-foam border border-pine/10 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
@@ -258,7 +256,6 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
           </div>
         </div>
       )}
-
       {/* LEADERBOARD UTILITIES ROW */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
         
@@ -314,7 +311,6 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
         </div>
 
       </div>
-
       {/* LEADERS BOARD TABLE / CORE CARD */}
       <div className="bg-white border border-pine/10 rounded-3xl overflow-hidden shadow-sm">
         
@@ -475,11 +471,8 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
         )}
 
         {/* Board room legal credit tag info bar */}
-        <div className="bg-gray-50 border-t border-gray-100 p-4 text-[9px] text-gray-400 font-sans tracking-wide leading-relaxed">
-          🏆 **菲律宾心理学家与心理计量学法案 (RA 10029) Regulatory Board Study Standards of Distinction.** Complete scores updated dynamically during connected sync operations. Your rank is computed against database user points to motivate consistent daily study sessions.
-        </div>
+        <div className="bg-gray-50 border-t border-gray-100 p-4 text-[9px] text-gray-400 font-sans tracking-wide leading-relaxed">🏆 Complete scores updated dynamically during connected sync operations. Your rank is computed against database user points to motivate consistent daily study sessions.</div>
       </div>
-
       {/* IMMERSIVE STUDY RETRIEVAL CARD LINK */}
       <div className="bg-[#123e25] text-cream p-5 rounded-2xl border border-pine-mid/25 flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
@@ -497,7 +490,6 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ profile }) =
           <ArrowUpRight className="w-3.5 h-3.5 text-pine" />
         </a>
       </div>
-
     </div>
   );
 };
