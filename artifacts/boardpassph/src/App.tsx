@@ -44,7 +44,7 @@ import { WeightedCalculatorPanel } from './components/WeightedCalculatorPanel';
 import { AnnouncementsPanel } from './components/AnnouncementsPanel';
 import { ProfilePanel } from './components/ProfilePanel';
 import { getRandomLocalQuestion } from './utils/questionGenerator';
-import { db, firestoreWithTimeout, auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged } from './firebase';
+import { db, firestoreWithTimeout, auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, initializeFirebase } from './firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const THEME_OPTIONS = [
@@ -74,6 +74,11 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('bp_theme', theme);
   }, [theme]);
+
+  // Initialize Firebase on app mount
+  useEffect(() => {
+    initializeFirebase();
+  }, []);
 
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced'>('synced');
 

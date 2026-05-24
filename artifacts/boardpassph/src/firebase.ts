@@ -46,18 +46,23 @@ export const firebaseStatus = {
   errorMessage: ''
 };
 
-signInAnonymously(auth).catch((err) => {
-  const msg = err instanceof Error ? err.message : String(err);
-  firebaseStatus.authAnonymousDisabled = msg.includes('auth/admin-restricted-operation') || msg.includes('admin-restricted-operation');
-  // Detect when the auth provider (anonymous) is not enabled in Firebase console
-  firebaseStatus.authOperationNotAllowed = msg.includes('auth/operation-not-allowed') || msg.includes('operation-not-allowed');
-  firebaseStatus.errorMessage = msg;
-  if (firebaseStatus.authOperationNotAllowed) {
-    console.error('Firebase Auth anonymous login failed: operation-not-allowed. Enable Anonymous sign-in in the Firebase Console (Authentication → Sign-in method).', err);
-  } else {
-    console.warn('Firebase Auth anonymous login failed:', err);
-  }
-});
+// Initialize Firebase on app load (deferred from module level)
+export function initializeFirebase() {
+  signInAnonymously(auth).catch((err) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    firebaseStatus.authAnonymousDisabled = msg.includes('auth/admin-restricted-operation') || msg.includes('admin-restricted-operation');
+    // Detect when the auth provider (anonymous) is not enabled in Firebase console
+    firebaseStatus.authOperationNotAllowed = msg.includes('auth/operation-not-allowed') || msg.includes('operation-not-allowed');
+    firebaseStatus.errorMessage = msg;
+    if (firebaseStatus.authOperationNotAllowed) {
+      console.error('Firebase Auth anonymous login failed: operation-not-allowed. Enable Anonymous sign-in in the Firebase Console (Authentication → Sign-in method).', err);
+    } else {
+      console.warn('Firebase Auth anonymous login failed:', err);
+    }
+  });
+
+  testConnection();
+}
 
 async function testConnection() {
   try {
@@ -75,7 +80,6 @@ async function testConnection() {
     }
   }
 }
-testConnection();
 
 export async function firestoreWithTimeout<T>(operation: Promise<T>, timeoutMs = 4000): Promise<T> {
   return Promise.race([
